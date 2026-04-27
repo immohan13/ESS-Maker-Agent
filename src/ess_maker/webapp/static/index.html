@@ -273,28 +273,41 @@
       </div>
 
       <div class="panel">
-        <h2>Knowledge sources</h2>
-        <p class="muted">Each source's <strong>description</strong> is what the orchestrator uses to decide which to cite. Be specific.</p>
-        <div id="kb_list"></div>
-        <button class="secondary" onclick="addKb()">+ Add source</button>
-        <hr style="margin:18px 0;border:none;border-top:1px solid var(--border)"/>
-        <h3 style="margin:0 0 6px">Add a SharePoint knowledge source to the live agent</h3>
-        <p class="muted">Scaffolds a Copilot Studio knowledge-source YAML, copies it into the target solution, and (optionally) packs &amp; imports via <code>pac</code>.</p>
+        <h2>Add a SharePoint knowledge source to the live agent</h2>
+        <p class="muted">Generates a Copilot Studio knowledge-source YAML you can paste into the agent's authoring canvas, plus a one-shot publish path for unmanaged customisation solutions. Each source's <strong>description</strong> is what the orchestrator uses to decide which to cite — be specific.</p>
         <div class="kb-row">
           <input id="kbpub_name" placeholder="Benefits SharePoint"/>
           <input id="kbpub_desc" placeholder="Covers health, dental, retirement, FSA, etc."/>
           <input id="kbpub_url" placeholder="https://contoso.sharepoint.com/sites/HRBenefits"/>
           <input id="kbpub_priority" type="number" min="1" max="10" value="1"/>
-          <button onclick="publishKb()">Publish to agent</button>
+          <button id="kbpub_btn" class="primary" onclick="publishKb()">Generate &amp; apply</button>
         </div>
-        <label style="margin-top:6px"><input id="kbpub_pac" type="checkbox" checked/> Also pack &amp; import via <code>pac</code> (uncheck to scaffold + apply only)</label>
-        <label style="margin-top:6px;display:block">
-          Target solution folder (repo-relative)
-          <input id="kbpub_target" placeholder="e.g. sources/dev/solutions/MyUnmanagedHRCustomization/Solution" style="width:100%;margin-top:4px"/>
-          <span class="muted" style="font-size:12px">Leave blank to use the default HR solution. The default is <strong>managed/first-party</strong> and cannot be re-imported — create your own unmanaged solution in Power Apps and point here.</span>
-        </label>
+        <label style="margin-top:8px;display:inline-block"><input id="kbpub_pac" type="checkbox"/> Also pack &amp; import via <code>pac</code> (requires an unmanaged customisation solution — see Advanced)</label>
+        <p class="muted" style="font-size:12px;margin-top:6px">
+          <strong>Note:</strong> The Microsoft-shipped HR template is <em>managed</em> — Power Platform refuses re-import. By default this scaffolds the YAML into <code>.workdir/proposed-knowledge/</code> so you can paste it into Copilot Studio. Tick the box above only after you've created an unmanaged customisation solution below.
+        </p>
+
+        <details style="margin-top:12px">
+          <summary class="muted">Advanced: target solution folder &amp; auto-init</summary>
+          <div style="margin-top:8px">
+            <label>Target solution folder (repo-relative)</label>
+            <input id="kbpub_target" placeholder="e.g. .workdir/solutions/EssMakerCustomizations/Solution" style="width:100%;margin-top:4px"/>
+            <p class="muted" style="font-size:12px;margin-top:4px">
+              Used when the <em>Also pack &amp; import</em> box above is ticked. Click below to scaffold one.
+            </p>
+            <div class="kb-row" style="margin-top:8px;grid-template-columns:1fr 140px 200px">
+              <input id="solinit_name" placeholder="EssMakerCustomizations"/>
+              <input id="solinit_prefix" placeholder="essmkr"/>
+              <button class="secondary" onclick="initSolution()">Create unmanaged solution</button>
+            </div>
+            <p class="muted" style="font-size:12px;margin-top:4px">
+              Runs <code>pac solution init</code>. After it succeeds the folder path will populate the field above automatically.
+            </p>
+          </div>
+        </details>
+
         <div id="kbpub_status" style="margin-top:10px"></div>
-        <pre id="kbpub_result" class="muted" style="margin-top:8px;white-space:pre-wrap;max-height:240px;overflow:auto"></pre>
+        <pre id="kbpub_result" class="muted" style="margin-top:8px;white-space:pre-wrap;max-height:240px;overflow:auto;display:none"></pre>
       </div>
 
       <div class="panel">
@@ -528,22 +541,14 @@ async function testConnection() {
 }
 
 // ---------- 2. Knowledge & Scope ----------
+// Legacy local KB list removed — the SharePoint KB form publishes directly to the live agent.
+// Keep `kb` as a no-op holder so saveConfig keeps working without breakage.
 let kb = [];
-function renderKb(list) {
-  kb = list.length ? list : [{ id: crypto.randomUUID(), name: '', description: '', url: '', priority: 1 }];
-  $('kb_list').innerHTML = '<div class="kb-row"><strong>Name</strong><strong>Description</strong><strong>URL</strong><strong>Priority</strong><span></span></div>' +
-    kb.map((s, i) => `
-      <div class="kb-row">
-        <input value="${esc(s.name)}" oninput="kb[${i}].name=this.value" placeholder="Benefits KB"/>
-        <input value="${esc(s.description)}" oninput="kb[${i}].description=this.value" placeholder="Covers health, dental, retirement…"/>
-        <input value="${esc(s.url || '')}" oninput="kb[${i}].url=this.value" placeholder="https://…"/>
-        <input type="number" min="1" max="10" value="${s.priority || 1}" oninput="kb[${i}].priority=+this.value"/>
-        <button class="secondary" onclick="kb.splice(${i},1);renderKb(kb)">×</button>
-      </div>`).join('');
-}
-function addKb() { kb.push({ id: crypto.randomUUID(), name: '', description: '', url: '', priority: 1 }); renderKb(kb); }
+function renderKb(list) { kb = Array.isArray(list) ? list : []; }
+function addKb() { /* no-op: legacy local list removed */ }
 
 async function publishKb() {
+  const btn = $('kbpub_btn');
   const body = {
     name: $('kbpub_name').value.trim(),
     description: $('kbpub_desc').value.trim(),
@@ -556,29 +561,85 @@ async function publishKb() {
   const result = $('kbpub_result');
   status.innerHTML = '';
   result.textContent = '';
+  result.style.display = 'none';
   if (!body.name || !body.url) {
     status.innerHTML = '<div class="insight high"><h4>Name and URL are required.</h4></div>';
     return;
   }
-  status.innerHTML = `<div class="muted">${body.publish
-    ? 'Scaffolding → applying → packing → importing… (this can take 1-3 minutes)'
-    : 'Scaffolding → applying…'}</div>`;
+  btn.disabled = true;
+  const origLabel = btn.textContent;
+  btn.textContent = body.publish ? 'Publishing…' : 'Applying…';
+  status.innerHTML = `<div class="insight" style="background:var(--bg-soft,#f4f6fa)"><h4>${body.publish
+    ? '⏳ Scaffolding → applying → packing → importing… (this can take 1-3 minutes)'
+    : '⏳ Scaffolding → applying…'}</h4></div>`;
   try {
     const r = await fetch('/api/knowledge/publish', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }).then(r => r.json());
     result.textContent = JSON.stringify(r, null, 2);
+    result.style.display = '';
     if (r.ok) {
-      status.innerHTML = `<div class="insight" style="background:#e8f5e9"><h4>Published. Knowledge source <code>${esc(r.scaffold?.kb_id||'')}</code> applied${body.publish ? ' and imported' : ''}.</h4></div>`;
+      const scaffoldDir = r.scaffold?.proposed_dir || '';
+      const applyTo = r.apply?.applied_to || '';
+      status.innerHTML = `<div class="insight" style="background:#e8f5e9;border-left:4px solid #2e7d32">
+        <h4>✅ Published. Knowledge source <code>${esc(r.scaffold?.kb_id||'')}</code> ${body.publish ? 'imported into the live agent' : 'applied to the solution folder'}.</h4>
+        <p class="muted" style="margin:6px 0 0">Files written to <code>${esc(applyTo || scaffoldDir)}</code></p>
+      </div>`;
+      $('kbpub_name').value = '';
+      $('kbpub_desc').value = '';
+      $('kbpub_url').value = '';
     } else {
       const pub = r.publish || {};
       const reason = pub.error || r.error || 'Publish failed.';
       const hint = pub.hint || pub.solution?.hint || '';
-      status.innerHTML = `<div class="insight high"><h4>${esc(reason)}</h4>${hint ? `<p><strong>Fix:</strong> ${esc(hint)}</p>` : ''}<p class="muted">Step that failed: <code>${esc(pub.step || r.stage || '?')}</code></p></div>`;
+      const blockedBy = pub.solution?.blocked ? pub.solution : null;
+      let extra = '';
+      if (blockedBy) {
+        extra = `<p class="muted" style="margin-top:8px">
+          → Use the <strong>Advanced &gt; Create unmanaged solution</strong> helper below to scaffold a customisation solution, then click <em>Publish to agent</em> again.
+        </p>`;
+      }
+      status.innerHTML = `<div class="insight high">
+        <h4>❌ ${esc(reason)}</h4>
+        ${hint ? `<p><strong>Fix:</strong> ${esc(hint)}</p>` : ''}
+        <p class="muted" style="margin-top:6px">Step that failed: <code>${esc(pub.step || r.stage || '?')}</code></p>
+        ${extra}
+      </div>`;
     }
   } catch (e) {
-    status.innerHTML = `<div class="insight high"><h4>Network error</h4><p>${esc(String(e))}</p></div>`;
+    status.innerHTML = `<div class="insight high"><h4>❌ Network error</h4><p>${esc(String(e))}</p></div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origLabel;
+  }
+}
+
+async function initSolution() {
+  const name = ($('solinit_name').value || '').trim();
+  const prefix = ($('solinit_prefix').value || '').trim();
+  const status = $('kbpub_status');
+  if (!name || !prefix) {
+    status.innerHTML = '<div class="insight high"><h4>Solution name and publisher prefix are required.</h4></div>';
+    return;
+  }
+  status.innerHTML = '<div class="insight" style="background:var(--bg-soft,#f4f6fa)"><h4>⏳ Running <code>pac solution init</code>…</h4></div>';
+  try {
+    const r = await fetch('/api/pac/solution-init', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ solution_name: name, publisher_prefix: prefix }),
+    }).then(r => r.json());
+    if (r.ok) {
+      $('kbpub_target').value = r.target_solution_subdir;
+      status.innerHTML = `<div class="insight" style="background:#e8f5e9;border-left:4px solid #2e7d32">
+        <h4>✅ Created unmanaged solution <code>${esc(name)}</code></h4>
+        <p class="muted" style="margin:6px 0 0">Target solution folder set to <code>${esc(r.target_solution_subdir)}</code>. Click <em>Publish to agent</em> to import the next KB into it.</p>
+      </div>`;
+    } else {
+      status.innerHTML = `<div class="insight high"><h4>❌ ${esc(r.error || 'pac solution init failed')}</h4>${r.hint ? `<p><strong>Fix:</strong> ${esc(r.hint)}</p>` : ''}</div>`;
+    }
+  } catch (e) {
+    status.innerHTML = `<div class="insight high"><h4>❌ Network error</h4><p>${esc(String(e))}</p></div>`;
   }
 }
 function esc(s) { return (s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }

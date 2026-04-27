@@ -791,6 +791,38 @@ async def pac_publish(req: PacPublishReq) -> dict:
     )
 
 
+class SolutionInitReq(BaseModel):
+    solution_name: str
+    publisher_prefix: str
+
+
+@app.post("/api/pac/solution-init")
+async def pac_solution_init(req: SolutionInitReq) -> dict:
+    """Scaffold a new unmanaged customisation solution under .workdir/solutions/<name>/Solution."""
+    name = (req.solution_name or "").strip()
+    prefix = (req.publisher_prefix or "").strip()
+    safe_name = re.sub(r"[^A-Za-z0-9_-]+", "", name)
+    if not safe_name:
+        return {"ok": False, "error": "solution name must contain alphanumerics"}
+    repo = _repo_root()
+    target_rel = Path(".workdir") / "solutions" / safe_name / "Solution"
+    out_dir = settings.ess_maker_workdir / "solutions" / safe_name / "Solution"
+    res = await pac_mod.init_unmanaged_solution(out_dir, safe_name, prefix)
+    if not res.get("ok"):
+        return res
+    # Compute the path relative to repo root for the UI's target_solution_subdir field.
+    try:
+        rel = out_dir.resolve().relative_to(repo.resolve())
+        target_sub = str(rel).replace("\\", "/")
+    except Exception:
+        target_sub = str(target_rel).replace("\\", "/")
+    return {
+        "ok": True,
+        "path": res["path"],
+        "target_solution_subdir": target_sub,
+    }
+
+
 # ---------- API: SharePoint knowledge sources ----------
 
 from ess_maker import knowledge as kb_mod
