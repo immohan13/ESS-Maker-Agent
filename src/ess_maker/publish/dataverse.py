@@ -67,14 +67,37 @@ async def resolve_org_url() -> tuple[str | None, str | None]:
 
 # ---------- Token acquisition ---------------------------------------------
 
+def _find_az() -> str | None:
+    """Locate az CLI. Prefer PATH, fall back to common Windows install dirs."""
+    import shutil
+    found = shutil.which("az") or shutil.which("az.cmd") or shutil.which("az.exe")
+    if found:
+        return found
+    candidates = [
+        r"C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.cmd",
+        r"C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin\az.cmd",
+        os.path.expandvars(r"%LOCALAPPDATA%\Programs\Microsoft SDKs\Azure\CLI2\wbin\az.cmd"),
+    ]
+    for c in candidates:
+        if c and os.path.isfile(c):
+            return c
+    return None
+
+
 async def get_access_token(org_url: str) -> tuple[str | None, str | None]:
-    """Try `az account get-access-token` first. Returns (token, error)."""
-    az = "az"
+    """Try DATAVERSE_TOKEN env var, then `az account get-access-token`."""
+    tok = (os.environ.get("DATAVERSE_TOKEN") or "").strip()
+    if tok:
+        return tok, None
+    az = _find_az()
+    if not az:
+        return None, "Azure CLI (`az`) not found on PATH. Install it or set DATAVERSE_TOKEN env var."
     try:
-        proc = await asyncio.create_subprocess_exec(
-            az, "account", "get-access-token",
-            "--resource", org_url,
-            "--output", "json",
+        # Use shell=False with the resolved path; .cmd needs shell on Windows
+        # asyncio. Use subprocess_shell to handle .cmd reliably.
+        cmd = f'"{az}" account get-access-token --resource "{org_url}" --output json'
+        proc = await asyncio.create_subprocess_shell(
+            cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
