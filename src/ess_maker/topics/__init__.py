@@ -36,6 +36,17 @@ class TopicTemplate:
     inputs: list[dict] = field(default_factory=list)   # {name, entity, description}
     flow_template: str | None = None  # path under .workdir or None for "no flow yet"
     notes: str = ""
+    # Workday integration: which existing scenario to call via the shared
+    # WorkdaySystemGetCommonExecution dialog (mirrors live bot pattern).
+    # Examples: msdyn_HRWorkdayHCMEmployeeGetVacationBalance,
+    #           msdyn_HRWorkdayHCMEmployeeGetLanguageInformation,
+    #           msdyn_HRWorkdayAbsenceEnterTimeOff_MultiDay
+    workday_scenario: str = ""
+    # Extra params (besides Employee_ID + As_Of_Effective_Date) to pass.
+    workday_extra_params: list[dict] = field(default_factory=list)
+    # Output kind for ParseValue (when the response is parsed into typed fields).
+    # Each entry: {"name": str, "type": "String"|"Table"|"Record", "fields": [...]}
+    workday_response_fields: list[dict] = field(default_factory=list)
 
 
 # Canonical Workday samples from the public CopilotStudioSamples repo.
@@ -59,7 +70,17 @@ WORKDAY_TEMPLATES: list[TopicTemplate] = [
             {"name": "AsOfEffectiveDate", "entity": "DateTimePrebuiltEntity",
              "description": "Effective date for balance lookup. Defaults to Today()."},
         ],
-        notes="Reads `Get_Workers` then `Get_Absence_Balances` on Absence_Management. Requires the Workday connector to be authorized for the bot author or test user.",
+        # Reuse the live bot's pattern: BeginDialog → WorkdaySystemGetCommonExecution
+        # with this scenario name. The shared dialog already owns the connector,
+        # auth, retries and OnError redirect — we just wire the scenarioName.
+        workday_scenario="msdyn_HRWorkdayHCMEmployeeGetVacationBalance",
+        workday_response_fields=[
+            {"name": "PlanDescriptor", "type": "Table", "value_field": "Value"},
+            {"name": "PlanID", "type": "Table", "value_field": "Value"},
+            {"name": "RemainingBalance", "type": "Table", "value_field": "Value"},
+            {"name": "UnitOfTime", "type": "Table", "value_field": "Value"},
+        ],
+        notes="Calls the existing `msdyn_HRWorkdayHCMEmployeeGetVacationBalance` scenario via the shared `WorkdaySystemGetCommonExecution` topic. No new flow or connection reference required — reuses the same plumbing as live Workday topics on this bot.",
     ),
     TopicTemplate(
         key="workday.absence.request",
@@ -80,7 +101,15 @@ WORKDAY_TEMPLATES: list[TopicTemplate] = [
             {"name": "InputLeaveReason", "entity": "StringPrebuiltEntity", "description": "Reason / comment."},
         ],
         flow_template="reference:WorkdayEmployeeRequestTimeOff/msdyn_HRWorkdayAbsenceEnterTimeOff_MultiDay.xml",
-        notes="Uses Submit_Absence_Request_Event. Uses the same flow XML pattern as the existing reference under WorkdayEmployeeRequestTimeOff/.",
+        workday_scenario="msdyn_HRWorkdayAbsenceEnterTimeOff_MultiDay",
+        workday_extra_params=[
+            {"key": "{Start_Date}", "value_expr": "Text(Topic.InputStartDate, \"yyyy-MM-dd\")"},
+            {"key": "{End_Date}", "value_expr": "Text(Topic.InputEndDate, \"yyyy-MM-dd\")"},
+            {"key": "{Hours_Per_Day}", "value_expr": "Text(Topic.InputHoursPerDay)"},
+            {"key": "{Time_Off_Type}", "value_expr": "Topic.InputTimeOffType"},
+            {"key": "{Comment}", "value_expr": "Topic.InputLeaveReason"},
+        ],
+        notes="Calls `msdyn_HRWorkdayAbsenceEnterTimeOff_MultiDay` via the shared dialog. Mirrors `WorkdayEmployeeRequestTimeOff/topic.yaml` in this repo.",
     ),
     TopicTemplate(
         key="workday.absence.cancel",
@@ -92,6 +121,10 @@ WORKDAY_TEMPLATES: list[TopicTemplate] = [
         trigger_keywords=["cancel time off", "cancel vacation", "cancel pto", "cancel my leave"],
         inputs=[
             {"name": "RequestId", "entity": "StringPrebuiltEntity", "description": "The Workday absence event ID to cancel."},
+        ],
+        workday_scenario="msdyn_HRWorkdayAbsenceCancelTimeOff",
+        workday_extra_params=[
+            {"key": "{Absence_Event_ID}", "value_expr": "Topic.RequestId"},
         ],
     ),
     TopicTemplate(
@@ -105,6 +138,7 @@ WORKDAY_TEMPLATES: list[TopicTemplate] = [
         inputs=[
             {"name": "PeriodStart", "entity": "DateTimePrebuiltEntity", "description": "Period start (optional)."},
         ],
+        workday_scenario="msdyn_HRWorkdayHCMEmployeeGetPayStatement",
     ),
     TopicTemplate(
         key="workday.profile.benefits",
@@ -115,6 +149,7 @@ WORKDAY_TEMPLATES: list[TopicTemplate] = [
         description="Lists the employee's current benefit elections (medical, dental, retirement).",
         trigger_keywords=["my benefits", "health insurance plan", "dental coverage", "retirement plan", "401k", "view benefits"],
         inputs=[],
+        workday_scenario="msdyn_HRWorkdayHCMEmployeeGetBenefits",
     ),
 ]
 
@@ -161,6 +196,9 @@ def _load_custom_templates() -> list[TopicTemplate]:
                 inputs=d.get("inputs", []),
                 flow_template=d.get("flow_template"),
                 notes=d.get("notes", ""),
+                workday_scenario=d.get("workday_scenario", ""),
+                workday_extra_params=d.get("workday_extra_params", []),
+                workday_response_fields=d.get("workday_response_fields", []),
             ))
         except KeyError:
             continue
@@ -242,12 +280,17 @@ def _slug(s: str) -> str:
 def render_topic_yaml(template: TopicTemplate, scenario_prompt: str, display_name: str) -> str:
     """Produce a Copilot Studio topic YAML for the given template + scenario.
 
-    This is a *starting point* the maker iterates on — not a finished topic.
-    It includes:
-      • declared inputs from the template
-      • a model description grounded in the maker's actual scenario prompt
-      • placeholder action node referencing the relevant Workday operation
-      • clear TODO markers wherever a connection ref or flow ID must be filled in
+    For Workday topics, mirrors the structure of live HR-bot topics like
+    `Workday Get LanguageInformation` and the in-repo
+    `WorkdayEmployeeRequestTimeOff/topic.yaml`:
+
+      • `intent: {}` + a strong `modelDescription` (the orchestrator's signal)
+      • Example trigger phrases live INSIDE modelDescription (Copilot Studio's
+        actual `triggerPhrases:` schema differs across versions; embedding the
+        phrases inside the description is the safe path that always works).
+      • Action chain reuses the shared `WorkdaySystemGetCommonExecution`
+        dialog with the canonical `scenarioName` for this operation. No new
+        flow, no `<FLOW_ID>` placeholder, no `<CONNECTION_REF>` to fill in.
     """
     inputs_yaml = []
     for i in template.inputs:
@@ -260,8 +303,7 @@ def render_topic_yaml(template: TopicTemplate, scenario_prompt: str, display_nam
         )
     inputs_block = "\n\n".join(inputs_yaml) if inputs_yaml else "  []"
 
-    triggers = "\n".join(f'  - "{kw}"' for kw in template.trigger_keywords[:8])
-
+    example_prompts = "\n  ".join(f'"{kw}"' for kw in template.trigger_keywords[:8])
     action_block = _render_action_for(template)
 
     return f"""kind: AdaptiveDialog
@@ -283,8 +325,8 @@ modelDescription: |-
   Only respond when the user is asking about their own data. Do not respond
   to questions about other people's data.
 
-triggerPhrases:
-{triggers}
+  Example prompts:
+  {example_prompts}
 
 beginDialog:
   kind: OnRecognizedIntent
@@ -296,38 +338,97 @@ beginDialog:
 
 
 def _render_action_for(template: TopicTemplate) -> str:
+    """Render the action chain.
+
+    Workday topics on this bot DO NOT call `InvokeFlowAction` directly. They
+    `BeginDialog` into the shared `WorkdaySystemGetCommonExecution` topic which
+    owns the connector, OAuth, retry and OnError redirect. We only need to
+    pass `parameters` (a JSON string of {key,value} pairs) and `scenarioName`.
+
+    Pattern verified against live HR-bot topics (Get LanguageInformation,
+    Get CompensationRatio, Get Certifications, Get Vacation Balance) on
+    2026-04-26.
+    """
     if template.system != "workday":
         return (
             "    - kind: SendActivity\n"
             "      id: not_implemented\n"
             "      activity: \"This topic is a stub. Add the action nodes for {0}.\"\n".format(template.key)
         )
-    # Common Workday pattern: set tenant url, call connector / flow, format response.
-    return f"""    - kind: SetVariable
-      id: set_workday_url
-      variable: Topic.WorkdayUrl
-      value: =Concatenate("https://impl.workday.com/", Env.WorkdayTenant, "/home.htmld")
 
-    # ---------------------------------------------------------------
-    # TODO(maker): wire this to your Workday connector or Power Automate flow.
-    # Replace <CONNECTION_REF> with the connection reference name in the solution
-    # and <FLOW_ID> with the GUID of the corresponding cloud flow.
-    # ---------------------------------------------------------------
-    - kind: InvokeFlowAction
-      id: call_{template.schema_name.lower()}
+    # Topic must be on a bot whose schemaname has the topic-namespace prefix.
+    # We can't always know the live bot schema at scaffold time, so we point
+    # at the HR bot's known shared dialog by default and let the user override.
+    bot_namespace = settings.mcs_bot_schema or "msdyn_copilotforemployeeselfservicehr"
+    common_dialog = f"{bot_namespace}.topic.WorkdaySystemGetCommonExecution"
+
+    # Build the parameters JSON. Always include Employee_ID + As_Of_Effective_Date
+    # (these mirror the live topics) plus any extras declared on the template.
+    params: list[tuple[str, str]] = [
+        ("{Employee_ID}", "Global.ESS_UserContext_Employee_Id"),
+        ("{As_Of_Effective_Date}", "Text(Today(), \"yyyy-MM-dd\")"),
+    ]
+    for p in template.workday_extra_params or []:
+        params.append((p["key"], p["value_expr"]))
+
+    # Power Fx string concat for the JSON payload.
+    json_pairs = []
+    for key, expr in params:
+        # Each becomes:  {""key"":""<key>"",""value"":""" & <expr> & """}
+        # When the expr is already a literal call to Text(...) we still wrap.
+        json_pairs.append(f"{{\"\"key\"\":\"\"{key}\"\",\"\"value\"\":\"\"\" & {expr} & \"\"\"}}")
+    params_value = "=\"{\"\"params\"\":[" + ",".join(json_pairs) + "]}\""
+
+    scenario_name = template.workday_scenario or template.schema_name
+
+    # Optional ParseValue block for typed response fields.
+    parse_block = ""
+    if template.workday_response_fields:
+        props_lines = []
+        for f in template.workday_response_fields:
+            if f.get("type") == "Table":
+                props_lines.append(
+                    f"          {f['name']}:\n"
+                    f"            type:\n"
+                    f"              kind: Table\n"
+                    f"              properties:\n"
+                    f"                {f.get('value_field', 'Value')}: String"
+                )
+            else:
+                props_lines.append(f"          {f['name']}: String")
+        parse_block = (
+            "\n    - kind: ParseValue\n"
+            "      id: parseWorkdayResponse\n"
+            "      displayName: Parse Workday response\n"
+            "      variable: Topic.parsedResponse\n"
+            "      valueType:\n"
+            "        kind: Record\n"
+            "        properties:\n"
+            + "\n".join(props_lines) + "\n"
+            "      value: =Topic.workdayResponse\n"
+        )
+
+    return f"""    # Reuse the shared Workday execution dialog. This pattern matches
+    # every other Workday topic on this bot (e.g. "Workday Get LanguageInformation",
+    # "Workday Get CompensationRatio") — the shared dialog owns the connector,
+    # the auth, the retry, and the OnError redirect. We only supply:
+    #   • parameters  — the JSON payload (Employee_ID, As_Of_Effective_Date, extras)
+    #   • scenarioName — the canonical Workday operation key
+    - kind: BeginDialog
+      id: invokeWorkday
+      displayName: Call Workday — {scenario_name}
       input:
-        binding: {{}}
-      flowId: <FLOW_ID>            # TODO: paste flow GUID
-      connectionReference: <CONNECTION_REF>  # TODO: e.g. cr123_workdayHR
+        binding:
+          parameters: {params_value}
+          scenarioName: {scenario_name}
 
-    - kind: SendActivity
-      id: reply_ok
-      activity: "Done. Open Workday: {{Topic.WorkdayUrl}}"
-
-    - kind: SendActivity
-      id: reply_error
-      activity: "I couldn't reach Workday. The connection may need to be re-authorized."
-"""
+      dialog: {common_dialog}
+      output:
+        binding:
+          errorResponse: Topic.errorResponse
+          isSuccess: Topic.isSuccess
+          workdayResponse: Topic.workdayResponse
+{parse_block}"""
 
 
 # ---------- Public API ------------------------------------------------------
