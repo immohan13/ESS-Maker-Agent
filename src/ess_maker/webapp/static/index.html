@@ -853,26 +853,52 @@ async function loadDetail(idx, brief) {
     <p class="muted"><strong>Reply</strong></p>
     <pre>${esc(d.result.raw_reply || '(empty)')}</pre>
     ${d.result.error ? `<p class="muted"><strong>Error</strong></p><pre>${esc(d.result.error)}</pre>` : ''}
-    ${d.result.conversation_id ? `<p class="muted"><strong>conversation_id</strong> <code>${esc(d.result.conversation_id)}</code></p>` : ''}
+    ${d.result.conversation_id ? `<p class="muted"><strong>conversation_id</strong> <code id="conv_id_val">${esc(d.result.conversation_id)}</code>
+      <button class="secondary" style="margin-left:8px" onclick="fetchAiNow('${esc(d.result.conversation_id)}')">🔍 Fetch App Insights logs</button></p>
+      <div id="ai_manual_result"></div>` : ''}
     <h2 style="margin-top:16px">Insights</h2>
     ${ins}
     ${renderAppInsights(d.insight.app_insights)}
   `;
 }
 
+async function fetchAiNow(convId) {
+  const out = document.getElementById('ai_manual_result');
+  if (out) out.innerHTML = '<p class="muted">⏳ Querying App Insights…</p>';
+  try {
+    const r = await fetch(`/api/diagnostics/${encodeURIComponent(convId)}?lookback_min=180`).then(x => x.json());
+    if (out) out.innerHTML = renderAppInsights(r);
+  } catch (e) {
+    if (out) out.innerHTML = `<p class="muted">Lookup failed: ${esc(String(e))}</p>`;
+  }
+}
+
 function renderAppInsights(ai) {
   if (!ai) return '';
-  if (!ai.configured) return `<p class="muted" style="margin-top:12px">App Insights not configured — set it up in Setup tab to get the real underlying error.</p>`;
-  if (!ai.ok) return `<p class="muted" style="margin-top:12px">App Insights lookup failed: ${esc(ai.error || '')}</p>`;
-  if (!ai.rows || !ai.rows.length) return `<p class="muted" style="margin-top:12px">App Insights had no events for this conversation.</p>`;
+  if (!ai.configured) return `<div class="insight" style="margin-top:12px"><p>📊 <strong>App Insights not configured.</strong> Set it up in the <strong>Setup</strong> tab to see which topics ran during the eval and any runtime errors.</p></div>`;
+  if (!ai.ok) return `<div class="insight high" style="margin-top:12px"><p>App Insights lookup failed: ${esc(ai.error || '')}</p></div>`;
+  if (!ai.rows || !ai.rows.length) return `<div class="insight" style="margin-top:12px"><p class="muted">📊 App Insights had no events for this conversation in the last 60 minutes. The bot may not be wired to App Insights, or the conversation ran on a different channel. Check Copilot Studio → Settings → Advanced → Application Insights.</p></div>`;
+  // Topic trace — which topics did the orchestrator route to?
+  const topicEvents = ai.rows.filter(r => (r.name === 'TopicStart' || r.name === 'TopicEnd') && r.topic);
+  const uniqTopics = [...new Set(topicEvents.map(r => r.topic))];
+  const topicChain = uniqTopics.length
+    ? `<div class="insight info" style="margin-top:12px"><h4>📍 Topics the orchestrator ran</h4>
+        <p>${uniqTopics.map(t => `<code>${esc(t)}</code>`).join(' → ')}</p>
+        <p class="muted">If you expected a different topic to fire, the orchestrator picked something else (KB, fallback, or another topic with stronger trigger phrases).</p>
+      </div>`
+    : '';
+  // Errors
+  const errorRows = ai.rows.filter(r => r.name === 'OnErrorLog' && (r.errorMessage || r.errorCode));
+  const errorBlock = errorRows.length ? `<div class="insight high" style="margin-top:12px">
+    <h4>${esc(ai.summary.headline)}</h4>
+    ${ai.summary.fix_hint ? `<p><strong>Fix:</strong> ${esc(ai.summary.fix_hint)}</p>` : ''}
+  </div>` : '';
   const rows = ai.rows.map(r => `<tr><td>${esc(r.name||'')}</td><td>${esc(r.topic||'')}</td><td>${esc(r.actionName||'')}</td><td>${esc((r.errorCode||r.errorMessage||'').slice(0,200))}</td></tr>`).join('');
   return `
-    <h2 style="margin-top:16px">Real error from App Insights</h2>
-    <div class="insight high">
-      <h4>${esc(ai.summary.headline)}</h4>
-      ${ai.summary.fix_hint ? `<p><strong>Fix:</strong> ${esc(ai.summary.fix_hint)}</p>` : ''}
-    </div>
-    <details style="margin-top:8px"><summary class="muted">All ${ai.rows.length} events from App Insights</summary>
+    <h2 style="margin-top:16px">App Insights for this conversation</h2>
+    ${errorBlock}
+    ${topicChain}
+    <details style="margin-top:8px"><summary class="muted">All ${ai.rows.length} events</summary>
       <table style="margin-top:8px"><thead><tr><th>Event</th><th>Topic</th><th>Action</th><th>Error / Message</th></tr></thead><tbody>${rows}</tbody></table>
     </details>
   `;

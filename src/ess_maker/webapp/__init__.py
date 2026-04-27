@@ -287,14 +287,17 @@ async def get_result(idx: int) -> dict:
     item = report["items"][idx]
     insight = _build_insight(item, _read_json("agent.json", AgentConfig().model_dump()))
 
-    # If the agent returned the generic [System] On Error message, look up
-    # the *real* error in App Insights and attach it.
+    # If App Insights is configured, ALWAYS fetch logs for this conversation.
+    # Even on PASS results, the topic trace tells the maker WHICH path the
+    # orchestrator took (KB vs Workday topic vs custom topic) — critical for
+    # understanding why a "passing" eval actually didn't exercise the topic
+    # they're trying to test.
     reply = (item["result"].get("raw_reply") or "")
     conv_id = item["result"].get("conversation_id")
-    if _detect_system_on_error(reply) and conv_id and ai_diag.is_configured():
+    if conv_id and ai_diag.is_configured():
         diag = await ai_diag.fetch_errors_for_conversation(conv_id)
         insight["app_insights"] = diag
-        if diag.get("ok") and diag.get("rows"):
+        if diag.get("ok") and diag.get("rows") and _detect_system_on_error(reply):
             s = diag["summary"]
             insight["insights"].insert(0, {
                 "severity": "high",
