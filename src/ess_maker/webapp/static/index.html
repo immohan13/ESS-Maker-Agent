@@ -1076,8 +1076,45 @@ function renderScaffoldResult(r) {
     <p class="muted">Topic id: <code>${esc(r.topic_id)}</code> • staged at <code>${esc(r.proposed_dir)}</code></p>
     <div class="file-list">${files}</div>
     <ul>${(r.notes || []).map(n => `<li>${esc(n)}</li>`).join('')}</ul>
-    <button class="primary" onclick="applyTopic('${esc(r.topic_id)}')">Apply to solution</button>
+    <div id="apply_status_${esc(r.topic_id)}"></div>
+    <button class="primary" id="apply_btn_${esc(r.topic_id)}" onclick="publishTopicDirect('${esc(r.topic_id)}')">Publish to live agent</button>
+    <details style="margin-top:8px;">
+      <summary class="muted">Advanced: stage to solution folder (legacy pac path)</summary>
+      <button class="secondary" onclick="applyTopic('${esc(r.topic_id)}')" style="margin-top:6px;">Copy to solution folder</button>
+    </details>
   </div>`;
+}
+async function publishTopicDirect(topicId) {
+  const btn = document.getElementById('apply_btn_' + topicId);
+  const stat = document.getElementById('apply_status_' + topicId);
+  if (btn) { btn.disabled = true; btn.textContent = 'Publishing…'; }
+  if (stat) stat.innerHTML = '<div class="insight info"><p>⏳ Writing topic to the live agent via Dataverse Web API…</p></div>';
+  try {
+    const r = await fetch('/api/topics/publish-direct', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ topic_id: topicId }),
+    }).then(r => r.json());
+    if (r.ok) {
+      if (stat) stat.innerHTML = `<div class="insight" style="border-left:4px solid #10b981;">
+        <h4>✅ Live in the agent</h4>
+        <p>Topic <code>${esc(r.name)}</code> created.</p>
+        <p class="muted">botcomponentid: <code>${esc(r.botcomponentid || '')}</code><br>schemaname: <code>${esc(r.schema || '')}</code></p>
+        <p>Open <a href="https://copilotstudio.microsoft.com" target="_blank">Copilot Studio</a> → Topics tab to see it. Click <strong>Publish</strong> on the agent to push to live chat.</p>
+      </div>`;
+      if (btn) { btn.textContent = 'Published ✓'; }
+    } else {
+      if (stat) stat.innerHTML = `<div class="insight high">
+        <h4>❌ Publish failed</h4>
+        <p>${esc(r.error || 'unknown error')}</p>
+        ${r.hint ? `<p class="muted"><strong>Fix:</strong> ${esc(r.hint)}</p>` : ''}
+        ${r.step ? `<p class="muted">Step that failed: <code>${esc(r.step)}</code></p>` : ''}
+      </div>`;
+      if (btn) { btn.disabled = false; btn.textContent = 'Publish to live agent'; }
+    }
+  } catch (e) {
+    if (stat) stat.innerHTML = `<div class="insight high"><h4>❌ Network error</h4><p>${esc(String(e))}</p></div>`;
+    if (btn) { btn.disabled = false; btn.textContent = 'Publish to live agent'; }
+  }
 }
 async function applyTopic(topicId) {
   const r = await fetch('/api/topics/apply', {

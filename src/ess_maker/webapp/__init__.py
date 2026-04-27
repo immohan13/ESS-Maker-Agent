@@ -731,6 +731,47 @@ async def apply_topic(req: ApplyTopicReq) -> dict:
     return topics_mod.apply_to_solution(req.topic_id, req.target_solution_subdir)
 
 
+class PublishTopicDirectReq(BaseModel):
+    topic_id: str
+    bot_schema: str | None = None
+
+
+@app.post("/api/topics/publish-direct")
+async def publish_topic_direct(req: PublishTopicDirectReq) -> dict:
+    """Publish a staged topic straight into the live agent via Dataverse Web API."""
+    from pathlib import Path
+    import json as _json
+    src = topics_mod.staging_dir() / req.topic_id
+    if not src.exists():
+        raise HTTPException(404, f"no such proposed topic: {req.topic_id}")
+    yaml_path = src / "topic.yaml"
+    if not yaml_path.exists():
+        raise HTTPException(400, f"topic.yaml not found in {src}")
+    topic_yaml = yaml_path.read_text(encoding="utf-8")
+    meta_p = src / "meta.json"
+    meta = _json.loads(meta_p.read_text(encoding="utf-8")) if meta_p.exists() else {}
+    name = (meta.get("display_name") or req.topic_id).strip()
+    description = (meta.get("scenario_prompt") or "").strip()
+    res = await dv_mod.create_topic(
+        name=name,
+        description=description,
+        topic_yaml=topic_yaml,
+        bot_schema=req.bot_schema,
+    )
+    if res.get("ok"):
+        # Mark as applied so the UI shows the badge
+        try:
+            meta["applied"] = True
+            from time import time as _now
+            meta["applied_at"] = _now()
+            meta["applied_to"] = "dataverse: " + (res.get("location") or "")
+            meta["botcomponentid"] = res.get("botcomponentid")
+            meta_p.write_text(_json.dumps(meta, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+    return res
+
+
 # ---------- API: register custom templates --------------------------------
 
 class RegisterTemplateReq(BaseModel):

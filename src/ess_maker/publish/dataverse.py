@@ -325,3 +325,98 @@ def _hint_for_status(code: int) -> str | None:
     if code == 400:
         return "Dataverse rejected the payload. The bot's schemaname may not match this environment, or schemaname collision."
     return None
+
+
+# ---------- Topics (componenttype 9 = AdaptiveDialog) ---------------------
+
+# Component type 9 == Topic / AdaptiveDialog. Verified against the HR bot in
+# the Mohan Maker Env on 2026-04-26 (37 of 61 botcomponents on that bot are
+# componenttype=9, all with `data` containing `kind: AdaptiveDialog`).
+COMPONENT_TYPE_TOPIC = 9
+
+
+def build_topic_body(
+    *,
+    bot_schema: str,
+    bot_id: str,
+    name: str,
+    description: str,
+    topic_yaml: str,
+) -> dict[str, Any]:
+    """Build the JSON payload that gets POSTed to /botcomponents for a topic."""
+    schema_token = _safe_schema_token(name)
+    schema = f"{bot_schema}.topic.{schema_token}__{_suffix_22()}"
+    return {
+        "name": name.strip(),
+        "description": (description or "").strip()
+            or f"Topic: {name.strip()}",
+        "componenttype": COMPONENT_TYPE_TOPIC,
+        "schemaname": schema,
+        "data": topic_yaml,
+        "parentbotid@odata.bind": f"/bots({bot_id})",
+    }
+
+
+async def create_topic(
+    *,
+    name: str,
+    description: str,
+    topic_yaml: str,
+    bot_schema: str | None = None,
+) -> dict[str, Any]:
+    """Write a topic (AdaptiveDialog YAML) directly into the live agent."""
+    if not name.strip() or not topic_yaml.strip():
+        return {"ok": False, "step": "validate", "error": "name and topic_yaml are required"}
+    org_url, source = await resolve_org_url()
+    if not org_url:
+        return {
+            "ok": False, "step": "resolve org url",
+            "error": "could not determine the Dataverse org URL",
+            "hint": "Either set DATAVERSE_ORG_URL in .env or run `pac auth create --environment <ENV_GUID>`.",
+        }
+    token, err = await get_access_token(org_url)
+    if not token:
+        return {
+            "ok": False, "step": "get token", "org_url": org_url,
+            "error": err, "hint": "Run `az login --tenant <your-tenant>` then try again.",
+        }
+    schema = (bot_schema or settings.mcs_bot_schema or "").strip()
+    async with httpx.AsyncClient(base_url=org_url, headers=_headers(token), timeout=60.0) as client:
+        bot_id, berr = await get_bot_id(client, schema)
+        if not bot_id:
+            return {
+                "ok": False, "step": "lookup bot", "org_url": org_url, "bot_schema": schema,
+                "error": berr,
+                "hint": "Set MCS_BOT_SCHEMA in your .env to the agent's schema name.",
+            }
+        body = build_topic_body(
+            bot_schema=schema, bot_id=bot_id,
+            name=name, description=description, topic_yaml=topic_yaml,
+        )
+        r = await client.post("/api/data/v9.2/botcomponents", json=body)
+        if r.status_code not in (200, 201, 204):
+            return {
+                "ok": False, "step": "create botcomponent",
+                "status": r.status_code, "error": _short_error(r.text),
+                "hint": _hint_for_status(r.status_code),
+                "schema": body["schemaname"],
+            }
+        location = r.headers.get("OData-EntityId") or r.headers.get("Location") or ""
+        m = re.search(r"botcomponents\(([0-9a-fA-F-]+)\)", location)
+        botcomponentid = m.group(1) if m else None
+    return {
+        "ok": True,
+        "step": "create botcomponent",
+        "botcomponentid": botcomponentid,
+        "location": location,
+        "org_url": org_url,
+        "org_url_source": source,
+        "bot_schema": schema,
+        "bot_id": bot_id,
+        "name": body["name"],
+        "schema": body["schemaname"],
+        "next_steps": [
+            "Refresh the Topics tab in Copilot Studio for the agent.",
+            "Click Publish (top-right) on the agent to push the change to live chat.",
+        ],
+    }
