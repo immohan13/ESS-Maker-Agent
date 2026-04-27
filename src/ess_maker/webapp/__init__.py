@@ -757,6 +757,7 @@ async def unregister_template(key: str) -> dict:
 # ---------- API: real publish via pac CLI ---------------------------------
 
 from ess_maker.publish import pac as pac_mod
+from ess_maker.publish import dataverse as dv_mod
 
 
 class PacPublishReq(BaseModel):
@@ -917,6 +918,37 @@ async def publish_kb(req: PublishKbReq) -> dict:
         out["publish"] = pub
         out["ok"] = bool(pub.get("ok"))
     return out
+
+
+# ---------- API: direct Dataverse Web API publish (no solution needed) ----
+
+class PublishKbDirectReq(BaseModel):
+    name: str
+    description: str = ""
+    url: str
+    bot_schema: str | None = None  # override settings.mcs_bot_schema
+
+
+@app.get("/api/dataverse/status")
+async def dataverse_status() -> dict:
+    """Diagnostics: org URL resolution, token, bot lookup."""
+    return await dv_mod.status()
+
+
+@app.post("/api/knowledge/publish-direct")
+async def publish_kb_direct(req: PublishKbDirectReq) -> dict:
+    """Create a SharePoint knowledge source on the live agent via Dataverse Web API.
+
+    Bypasses pac solution pack/import. Result is visible in Copilot Studio's
+    Knowledge tab immediately; the maker still has to click Publish on the
+    agent itself for the change to reach live chat.
+    """
+    return await dv_mod.create_sharepoint_kb(
+        name=req.name,
+        description=req.description,
+        sharepoint_url=req.url,
+        bot_schema=req.bot_schema,
+    )
 
 
 # ---------- API: Maker Copilot (agentic side dock) ----------

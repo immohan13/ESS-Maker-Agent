@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     pp_client_id: str = ""
     pp_client_secret: str = ""
 
+    # Dataverse Web API (direct KB writes). If empty, ESS Maker auto-resolves
+    # from `pac auth list` (active profile's Environment Url).
+    dataverse_org_url: str = ""
+
     # MCP servers
     mcs_mcp_url: str = ""
     pp_mcp_url: str = ""

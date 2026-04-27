@@ -274,27 +274,30 @@
 
       <div class="panel">
         <h2>Add a SharePoint knowledge source to the live agent</h2>
-        <p class="muted">Generates a Copilot Studio knowledge-source YAML you can paste into the agent's authoring canvas, plus a one-shot publish path for unmanaged customisation solutions. Each source's <strong>description</strong> is what the orchestrator uses to decide which to cite — be specific.</p>
+        <p class="muted">Writes a SharePoint knowledge source straight into the live Copilot Studio agent via the Dataverse Web API. Visible in the Knowledge tab in seconds. Each source's <strong>description</strong> is what the orchestrator uses to decide which to cite — be specific.</p>
         <div class="kb-row">
           <input id="kbpub_name" placeholder="Benefits SharePoint"/>
           <input id="kbpub_desc" placeholder="Covers health, dental, retirement, FSA, etc."/>
           <input id="kbpub_url" placeholder="https://contoso.sharepoint.com/sites/HRBenefits"/>
           <input id="kbpub_priority" type="number" min="1" max="10" value="1"/>
-          <button id="kbpub_btn" class="primary" onclick="publishKb()">Generate &amp; apply</button>
+          <button id="kbpub_btn" class="primary" onclick="publishKbDirect()">Publish to live agent</button>
         </div>
-        <label style="margin-top:8px;display:inline-block"><input id="kbpub_pac" type="checkbox"/> Also pack &amp; import via <code>pac</code> (requires an unmanaged customisation solution — see Advanced)</label>
         <p class="muted" style="font-size:12px;margin-top:6px">
-          <strong>Note:</strong> The Microsoft-shipped HR template is <em>managed</em> — Power Platform refuses re-import. By default this scaffolds the YAML into <code>.workdir/proposed-knowledge/</code> so you can paste it into Copilot Studio. Tick the box above only after you've created an unmanaged customisation solution below.
+          ⚡ <strong>Direct publish</strong> uses your <code>az</code> sign-in to POST a <code>botcomponents</code> row tied to the bot. No solution needed. After it lands, click <strong>Publish</strong> in <a href="https://copilotstudio.microsoft.com" target="_blank">Copilot Studio</a> on the agent itself to ship to live chat.
         </p>
 
         <details style="margin-top:12px">
-          <summary class="muted">Advanced: target solution folder &amp; auto-init</summary>
+          <summary class="muted">Advanced: legacy <code>pac</code> / solution-import path</summary>
           <div style="margin-top:8px">
-            <label>Target solution folder (repo-relative)</label>
-            <input id="kbpub_target" placeholder="e.g. .workdir/solutions/EssMakerCustomizations/Solution" style="width:100%;margin-top:4px"/>
-            <p class="muted" style="font-size:12px;margin-top:4px">
-              Used when the <em>Also pack &amp; import</em> box above is ticked. Click below to scaffold one.
+            <p class="muted" style="font-size:12px">
+              Use this only if you want the KB tracked inside an unmanaged customisation solution (e.g. for ALM). It scaffolds YAML, packs a solution, and runs <code>pac solution import</code>. Note: the imported component lives in your custom solution and may not be bound to the HR agent — direct publish above is the recommended path.
             </p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+              <button class="secondary" onclick="publishKb()">Generate &amp; apply (pac path)</button>
+              <label><input id="kbpub_pac" type="checkbox"/> Also pack &amp; import via <code>pac</code></label>
+            </div>
+            <label style="margin-top:8px;display:block">Target solution folder (repo-relative)</label>
+            <input id="kbpub_target" placeholder="e.g. .workdir/solutions/EssMakerCustomizations/Solution" style="width:100%;margin-top:4px"/>
             <div class="kb-row" style="margin-top:8px;grid-template-columns:1fr 140px 200px">
               <input id="solinit_name" placeholder="EssMakerCustomizations"/>
               <input id="solinit_prefix" placeholder="essmkr"/>
@@ -572,6 +575,58 @@ async function testConnection() {
 let kb = [];
 function renderKb(list) { kb = Array.isArray(list) ? list : []; }
 function addKb() { /* no-op: legacy local list removed */ }
+
+async function publishKbDirect() {
+  const btn = $('kbpub_btn');
+  const name = ($('kbpub_name').value || '').trim();
+  const desc = ($('kbpub_desc').value || '').trim();
+  const url = ($('kbpub_url').value || '').trim();
+  const status = $('kbpub_status');
+  const result = $('kbpub_result');
+  status.innerHTML = '';
+  result.textContent = '';
+  result.style.display = 'none';
+  if (!name || !url) {
+    status.innerHTML = '<div class="insight high"><h4>Name and SharePoint URL are required.</h4></div>';
+    return;
+  }
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = 'Publishing…';
+  status.innerHTML = `<div class="insight" style="background:var(--bg-soft,#f4f6fa)"><h4>⏳ Writing knowledge source to the live agent via Dataverse…</h4></div>`;
+  try {
+    const r = await fetch('/api/knowledge/publish-direct', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description: desc, url }),
+    }).then(r => r.json());
+    result.textContent = JSON.stringify(r, null, 2);
+    result.style.display = '';
+    if (r.ok) {
+      status.innerHTML = `<div class="insight" style="background:#e8f5e9;border-left:4px solid #2e7d32">
+        <h4>✅ Live in the agent. Knowledge source <code>${esc(r.name)}</code> created.</h4>
+        <p class="muted" style="margin:6px 0 0">
+          ID <code>${esc(r.botcomponentid || '')}</code> on bot <code>${esc(r.bot_schema || '')}</code>.
+          Refresh <a href="https://copilotstudio.microsoft.com" target="_blank">Copilot Studio</a> → Knowledge tab to see it,
+          then click <strong>Publish</strong> on the agent to ship it to live chat.
+        </p>
+      </div>`;
+      $('kbpub_name').value = '';
+      $('kbpub_desc').value = '';
+      $('kbpub_url').value = '';
+    } else {
+      status.innerHTML = `<div class="insight high">
+        <h4>❌ ${esc(r.error || 'Publish failed.')}</h4>
+        ${r.hint ? `<p><strong>Fix:</strong> ${esc(r.hint)}</p>` : ''}
+        <p class="muted" style="margin-top:6px">Step that failed: <code>${esc(r.step || '?')}</code>${r.org_url ? ` · org: <code>${esc(r.org_url)}</code>` : ''}</p>
+      </div>`;
+    }
+  } catch (e) {
+    status.innerHTML = `<div class="insight high"><h4>❌ Network error</h4><p>${esc(String(e))}</p></div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
 
 async function publishKb() {
   const btn = $('kbpub_btn');
