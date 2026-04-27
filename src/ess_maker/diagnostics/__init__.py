@@ -26,6 +26,10 @@ API_BASE = "https://api.applicationinsights.io/v1/apps"
 # KQL: Copilot Studio writes to customEvents (not exceptions/traces).
 # Key event names: OnErrorLog, TopicStart, TopicEnd, TopicAction, BotMessageReceived, BotMessageSend.
 # customDimensions.ConversationId is the join key (also lowercase 'conversationId' is set).
+#
+# We aggressively filter out the [System] bookkeeping topics (UserContext-Validate,
+# Init Variables, Logger, ConversationStart) — they fire dozens of TopicAction rows
+# per turn and otherwise crowd out the actual user-facing topic + any OnErrorLog row.
 KQL_TEMPLATE = """
 let conv = "{conv_id}";
 let win = ago({lookback_min}m);
@@ -33,18 +37,24 @@ customEvents
 | where timestamp > win
 | where tostring(customDimensions.ConversationId) == conv
    or tostring(customDimensions.conversationId) == conv
+| extend topic = tostring(customDimensions.TopicName),
+         actionName = tostring(customDimensions.ActionName),
+         errorCode = tostring(customDimensions.ErrorCode),
+         errorMessage = tostring(customDimensions.ErrorMessage)
+// Always keep errors and message bookends, even if they came from a System topic.
+| where name in ('OnErrorLog','BotMessageReceived','BotMessageSend')
+     or isnotempty(errorCode) or isnotempty(errorMessage)
+     or topic !startswith 'msdyn_' or not(topic contains 'System-' or topic contains 'ConversationStart')
 | project timestamp, name,
-          errorCode = tostring(customDimensions.ErrorCode),
-          errorMessage = tostring(customDimensions.ErrorMessage),
-          topic = tostring(customDimensions.TopicName),
+          errorCode, errorMessage,
+          topic, actionName,
           topicId = tostring(customDimensions.TopicId),
-          actionName = tostring(customDimensions.ActionName),
           actionType = tostring(customDimensions.ActionType),
           flowId = tostring(customDimensions.FlowId),
           channel = tostring(customDimensions.channelId),
           dims = customDimensions
 | order by timestamp asc
-| take 50
+| take 500
 """
 
 

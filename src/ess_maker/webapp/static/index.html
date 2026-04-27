@@ -878,27 +878,35 @@ function renderAppInsights(ai) {
   if (!ai.configured) return `<div class="insight" style="margin-top:12px"><p>📊 <strong>App Insights not configured.</strong> Set it up in the <strong>Setup</strong> tab to see which topics ran during the eval and any runtime errors.</p></div>`;
   if (!ai.ok) return `<div class="insight high" style="margin-top:12px"><p>App Insights lookup failed: ${esc(ai.error || '')}</p></div>`;
   if (!ai.rows || !ai.rows.length) return `<div class="insight" style="margin-top:12px"><p class="muted">📊 App Insights had no events for this conversation in the last 60 minutes. The bot may not be wired to App Insights, or the conversation ran on a different channel. Check Copilot Studio → Settings → Advanced → Application Insights.</p></div>`;
-  // Topic trace — which topics did the orchestrator route to?
-  const topicEvents = ai.rows.filter(r => (r.name === 'TopicStart' || r.name === 'TopicEnd') && r.topic);
+  // Hide noisy [System] topics from the headline trace.
+  const isSystem = t => !t || t.includes('System-') || t.endsWith('.ConversationStart') || /\[System\]/i.test(t);
+  const topicEvents = ai.rows.filter(r => (r.name === 'TopicStart' || r.name === 'TopicEnd') && r.topic && !isSystem(r.topic));
   const uniqTopics = [...new Set(topicEvents.map(r => r.topic))];
   const topicChain = uniqTopics.length
-    ? `<div class="insight info" style="margin-top:12px"><h4>📍 Topics the orchestrator ran</h4>
+    ? `<div class="insight info" style="margin-top:12px"><h4>📍 Topics the orchestrator ran (excluding [System])</h4>
         <p>${uniqTopics.map(t => `<code>${esc(t)}</code>`).join(' → ')}</p>
         <p class="muted">If you expected a different topic to fire, the orchestrator picked something else (KB, fallback, or another topic with stronger trigger phrases).</p>
       </div>`
-    : '';
-  // Errors
+    : `<div class="insight info" style="margin-top:12px"><h4>📍 Only [System] topics ran</h4>
+        <p>No user-facing topic was triggered for this turn — the orchestrator answered without entering any topic, or the answer came from a Knowledge source.</p>
+      </div>`;
+  // Errors — show ALL of them, not just the summary.
   const errorRows = ai.rows.filter(r => r.name === 'OnErrorLog' && (r.errorMessage || r.errorCode));
   const errorBlock = errorRows.length ? `<div class="insight high" style="margin-top:12px">
-    <h4>${esc(ai.summary.headline)}</h4>
-    ${ai.summary.fix_hint ? `<p><strong>Fix:</strong> ${esc(ai.summary.fix_hint)}</p>` : ''}
-  </div>` : '';
-  const rows = ai.rows.map(r => `<tr><td>${esc(r.name||'')}</td><td>${esc(r.topic||'')}</td><td>${esc(r.actionName||'')}</td><td>${esc((r.errorCode||r.errorMessage||'').slice(0,200))}</td></tr>`).join('');
+    <h4>❌ ${errorRows.length} error event${errorRows.length > 1 ? 's' : ''} from App Insights</h4>
+    ${errorRows.map(e => `<p><strong>${esc(e.errorCode || 'Error')}</strong>${e.topic ? ` in <code>${esc(e.topic)}</code>` : ''}${e.actionName ? ` → <code>${esc(e.actionName)}</code>` : ''}<br>${esc((e.errorMessage || '').slice(0, 400))}</p>`).join('')}
+    ${ai.summary && ai.summary.fix_hint ? `<p><strong>Fix:</strong> ${esc(ai.summary.fix_hint)}</p>` : ''}
+  </div>` : `<div class="insight" style="margin-top:12px"><p class="muted">✓ No <code>OnErrorLog</code> events in this conversation — the bot did not throw a runtime error.</p></div>`;
+  // Full table, system rows greyed
+  const rows = ai.rows.map(r => {
+    const sys = isSystem(r.topic);
+    return `<tr${sys ? ' style="opacity:0.5"' : ''}><td>${esc(r.name||'')}</td><td>${esc(r.topic||'')}</td><td>${esc(r.actionName||'')}</td><td>${esc((r.errorCode||r.errorMessage||'').slice(0,200))}</td></tr>`;
+  }).join('');
   return `
     <h2 style="margin-top:16px">App Insights for this conversation</h2>
     ${errorBlock}
     ${topicChain}
-    <details style="margin-top:8px"><summary class="muted">All ${ai.rows.length} events</summary>
+    <details style="margin-top:8px"><summary class="muted">All ${ai.rows.length} events (system rows greyed)</summary>
       <table style="margin-top:8px"><thead><tr><th>Event</th><th>Topic</th><th>Action</th><th>Error / Message</th></tr></thead><tbody>${rows}</tbody></table>
     </details>
   `;
