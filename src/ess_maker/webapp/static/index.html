@@ -608,9 +608,16 @@ async function publishKb() {
     if (r.ok) {
       const scaffoldDir = r.scaffold?.proposed_dir || '';
       const applyTo = r.apply?.applied_to || '';
+      const reallyImported = body.publish && r.publish?.ok;
+      const headline = reallyImported
+        ? `✅ Imported into the live agent. Knowledge source <code>${esc(r.scaffold?.kb_id||'')}</code> is now in your environment.`
+        : `✅ Step 1 of 2: YAML scaffolded → saved to <code>${esc(applyTo || scaffoldDir)}</code>.`;
+      const next = reallyImported
+        ? `<p class="muted" style="margin:6px 0 0">Open <a href="https://copilotstudio.microsoft.com" target="_blank">Copilot Studio</a> → your agent → <strong>Publish</strong> to make it live in chat.</p>`
+        : `<p class="muted" style="margin:6px 0 0"><strong>To make it live in the agent:</strong> open <strong>Advanced</strong> below, scaffold an unmanaged solution, tick <em>Also pack &amp; import</em>, then click <em>Generate &amp; apply</em> again.<br>Or paste the YAML manually in <a href="https://copilotstudio.microsoft.com" target="_blank">Copilot Studio</a> → Knowledge → + Add knowledge → SharePoint.</p>`;
       status.innerHTML = `<div class="insight" style="background:#e8f5e9;border-left:4px solid #2e7d32">
-        <h4>✅ Published. Knowledge source <code>${esc(r.scaffold?.kb_id||'')}</code> ${body.publish ? 'imported into the live agent' : 'applied to the solution folder'}.</h4>
-        <p class="muted" style="margin:6px 0 0">Files written to <code>${esc(applyTo || scaffoldDir)}</code></p>
+        <h4>${headline}</h4>
+        ${next}
       </div>`;
       $('kbpub_name').value = '';
       $('kbpub_desc').value = '';

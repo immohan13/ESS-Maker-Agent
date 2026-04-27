@@ -889,11 +889,24 @@ async def publish_kb(req: PublishKbReq) -> dict:
         return {"ok": False, "stage": "apply", "error": ap.get("error"), "scaffold": _asdict(sc)}
     out: dict = {"ok": True, "scaffold": _asdict(sc), "apply": ap}
     if req.publish:
+        if not req.target_solution_subdir:
+            out["publish"] = {
+                "ok": False,
+                "step": "validate target",
+                "error": (
+                    "`Also pack & import` is ticked but no target solution folder is set. "
+                    "The default HR solution is managed/first-party and can't be re-imported."
+                ),
+                "hint": (
+                    "Open Advanced \u2192 set a name + prefix \u2192 click Create unmanaged solution. "
+                    "The folder will auto-fill, then click Generate & apply again."
+                ),
+                "solution": {"blocked": True},
+            }
+            out["ok"] = False
+            return out
         repo = _repo_root()
-        if req.target_solution_subdir:
-            src_dir = repo / req.target_solution_subdir
-        else:
-            src_dir = pac_mod.default_solution_dir(repo)
+        src_dir = repo / req.target_solution_subdir
         out_zip = settings.ess_maker_workdir / "publish" / f"{src_dir.name}.zip"
         pub = await pac_mod.pack_and_import(
             solution_src_dir=src_dir,
