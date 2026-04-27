@@ -34,6 +34,7 @@ config/local.*
 Thumbs.db
 
 # Build output / packaged solutions
-publish/
+.workdir/publish/
+/publish/
 *.cab
 *.zip
