@@ -441,18 +441,44 @@
       <div class="panel">
         <h2>Publish to Copilot Studio</h2>
         <p class="muted">
-          ESS Maker can pack the HR solution and import it into your environment using
+          ESS Maker can pack a solution and import it into your environment using
           the Power Platform CLI (<code>pac</code>). You sign in once with
           <code>pac auth create --environment &lt;ENV_GUID&gt;</code>; ESS Maker reuses that profile.
         </p>
         <div id="pac_status" class="step" style="margin-bottom:12px">Checking <code>pac</code>…</div>
-        <button class="secondary" onclick="refreshPacStatus()">Refresh status</button>
-        <button class="primary" id="pac_publish_btn" onclick="pacPublish()">Pack &amp; publish HR solution</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="secondary" onclick="refreshPacStatus()">Refresh status</button>
+          <button class="primary" id="pac_publish_btn" onclick="pacPublish()">Pack &amp; publish solution</button>
+        </div>
         <p class="muted" style="margin-top:6px; font-size:12px">
-          Source: <code>sources/dev/solutions/CopilotForEmployeeSelfServiceHR/Solution</code>.
+          Default source: <code>sources/dev/solutions/CopilotForEmployeeSelfServiceHR/Solution</code> (managed, will be blocked).
           Target environment: <code id="pac_env">(loading)</code>.
         </p>
-        <pre id="publish_result" style="margin-top:12px"></pre>
+
+        <details style="margin-top:12px">
+          <summary class="muted">Advanced: target solution folder &amp; auto-init</summary>
+          <div style="margin-top:8px">
+            <label>Target solution folder (repo-relative)</label>
+            <input id="pac_target" placeholder="e.g. .workdir/solutions/EssMakerCustomizations/Solution" style="width:100%;margin-top:4px"/>
+            <p class="muted" style="font-size:12px;margin-top:4px">
+              Leave blank to publish the default HR solution. The Microsoft-shipped
+              HR template is <strong>managed/first-party</strong> and Power Platform
+              refuses re-import — you'll need to scaffold an unmanaged customisation
+              solution below.
+            </p>
+            <div class="kb-row" style="margin-top:8px;grid-template-columns:1fr 140px 200px">
+              <input id="pac_solinit_name" placeholder="EssMakerCustomizations"/>
+              <input id="pac_solinit_prefix" placeholder="essmkr"/>
+              <button class="secondary" onclick="pacInitSolution()">Create unmanaged solution</button>
+            </div>
+            <p class="muted" style="font-size:12px;margin-top:4px">
+              Runs <code>pac solution init</code>. After it succeeds the folder above is auto-filled.
+            </p>
+          </div>
+        </details>
+
+        <div id="publish_status" style="margin-top:12px"></div>
+        <pre id="publish_result" style="margin-top:8px;display:none;max-height:280px;overflow:auto"></pre>
       </div>
     </section>
 
@@ -833,20 +859,86 @@ function renderPacStatus(r) {
 }
 async function pacPublish() {
   const btn = $('pac_publish_btn');
-  btn.disabled = true; btn.textContent = 'Packing & importing… (this can take a minute)';
-  $('publish_result').textContent = '';
+  const status = $('publish_status');
+  const result = $('publish_result');
+  const target = ($('pac_target').value || '').trim();
+  btn.disabled = true;
+  const origLabel = btn.textContent;
+  btn.textContent = 'Packing & importing…';
+  status.innerHTML = `<div class="insight" style="background:var(--bg-soft,#f4f6fa)">
+    <h4>⏳ Packing ${target ? `<code>${esc(target)}</code>` : 'the default HR solution'} and importing… (1-3 min)</h4>
+  </div>`;
+  result.textContent = '';
+  result.style.display = 'none';
   try {
+    const body = { publish: true };
+    if (target) body.target_solution_subdir = target;
     const r = await fetch('/api/pac/publish', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ publish: true }),
+      body: JSON.stringify(body),
     }).then(r => r.json());
-    $('publish_result').textContent = JSON.stringify(r, null, 2);
-    if (r.ok) toast('Published to ' + (r.zip_path || 'environment'));
-    else toast('Publish failed at: ' + (r.step || '?'));
+    result.textContent = JSON.stringify(r, null, 2);
+    if (r.ok) {
+      status.innerHTML = `<div class="insight" style="background:#e8f5e9;border-left:4px solid #2e7d32">
+        <h4>✅ Published.</h4>
+        ${r.zip_path ? `<p class="muted" style="margin:6px 0 0">Zip: <code>${esc(r.zip_path)}</code></p>` : ''}
+      </div>`;
+      toast('Published to environment');
+    } else {
+      const reason = r.error || 'Publish failed.';
+      const hint = r.hint || r.solution?.hint || '';
+      const blocked = r.solution?.blocked;
+      let extra = '';
+      if (blocked) {
+        extra = `<p class="muted" style="margin-top:8px">
+          → Open the <strong>Advanced</strong> section above and click
+          <strong>Create unmanaged solution</strong> to scaffold a customisation
+          solution, then click <em>Pack &amp; publish solution</em> again.
+        </p>`;
+      }
+      status.innerHTML = `<div class="insight high">
+        <h4>❌ ${esc(reason)}</h4>
+        ${hint ? `<p><strong>Fix:</strong> ${esc(hint)}</p>` : ''}
+        <p class="muted" style="margin-top:6px">Step that failed: <code>${esc(r.step || '?')}</code></p>
+        ${extra}
+        <p class="muted" style="font-size:12px;margin-top:6px">Full response below.</p>
+      </div>`;
+      result.style.display = '';
+      toast('Publish failed: ' + (r.step || '?'));
+    }
   } catch (e) {
-    $('publish_result').textContent = 'Error: ' + e.message;
+    status.innerHTML = `<div class="insight high"><h4>❌ Network error</h4><p>${esc(String(e))}</p></div>`;
   } finally {
-    btn.disabled = false; btn.textContent = 'Pack & publish HR solution';
+    btn.disabled = false;
+    btn.textContent = origLabel;
+  }
+}
+
+async function pacInitSolution() {
+  const name = ($('pac_solinit_name').value || '').trim();
+  const prefix = ($('pac_solinit_prefix').value || '').trim();
+  const status = $('publish_status');
+  if (!name || !prefix) {
+    status.innerHTML = '<div class="insight high"><h4>Solution name and publisher prefix are required.</h4></div>';
+    return;
+  }
+  status.innerHTML = '<div class="insight" style="background:var(--bg-soft,#f4f6fa)"><h4>⏳ Running <code>pac solution init</code>…</h4></div>';
+  try {
+    const r = await fetch('/api/pac/solution-init', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ solution_name: name, publisher_prefix: prefix }),
+    }).then(r => r.json());
+    if (r.ok) {
+      $('pac_target').value = r.target_solution_subdir;
+      status.innerHTML = `<div class="insight" style="background:#e8f5e9;border-left:4px solid #2e7d32">
+        <h4>✅ Created unmanaged solution <code>${esc(name)}</code></h4>
+        <p class="muted" style="margin:6px 0 0">Target folder set to <code>${esc(r.target_solution_subdir)}</code>. Click <em>Pack &amp; publish solution</em> to import it.</p>
+      </div>`;
+    } else {
+      status.innerHTML = `<div class="insight high"><h4>❌ ${esc(r.error || 'pac solution init failed')}</h4>${r.hint ? `<p><strong>Fix:</strong> ${esc(r.hint)}</p>` : ''}</div>`;
+    }
+  } catch (e) {
+    status.innerHTML = `<div class="insight high"><h4>❌ Network error</h4><p>${esc(String(e))}</p></div>`;
   }
 }
 
