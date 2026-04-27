@@ -1,0 +1,11 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schema/mcp.json",
+  "servers": {
+    "ess-maker": {
+      "command": "ess-maker-mcp",
+      "args": [],
+      "transport": "stdio",
+      "description": "ESS Maker tools: run evals, analyze, suggest fixes, patch topics, publish."
+    }
+  }
+}

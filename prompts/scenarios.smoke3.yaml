@@ -1,0 +1,38 @@
+scenarios:
+- id: seval-eb0cef2125
+  category: Mixed
+  prompt: How do I manage messages in Outlook 2010 while I'm out of office?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-9be212139f
+  category: Mixed
+  prompt: What resources are available to help my children adapt to a new school in
+    another country if we relocate?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-8d7ff757cc
+  category: Mixed
+  prompt: What if I can't login to the support portal when submitting a hardware support
+    ticket from my phone?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: hr-leave-balance
+  category: HR
+  prompt: What is my leave balance?
+  expected_topic: HRWorkdayAbsenceCheckBalance
+  expected_assertions:
+  - mentions remaining time off or PTO balance
+  - returns a numeric balance or links to Workday
+  tags:
+  - smoke
+  - workday
+  - absence

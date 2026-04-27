@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ESS Maker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root, [data-theme="light"] {
+      --bg: #f8fafc; --panel: #ffffff; --line: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #0284c7; --accent-fg: #ffffff;
+      --good: #16a34a; --bad: #dc2626; --warn: #d97706;
+      --code-bg: #f1f5f9; --row-hover: rgba(2,132,199,.06);
+      --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a; --panel: #1e293b; --line: #334155; --text: #e2e8f0;
+      --muted: #94a3b8; --accent: #38bdf8; --accent-fg: #0f172a;
+      --good: #22c55e; --bad: #ef4444; --warn: #f59e0b;
+      --code-bg: #0f172a; --row-hover: rgba(56,189,248,.05);
+      --shadow: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+           background: var(--bg); color: var(--text); }
+    header { padding: 12px 24px; border-bottom: 1px solid var(--line);
+             display: flex; gap: 12px; align-items: center; background: var(--panel); }
+    header .logo {
+      width: 38px; height: 38px; border-radius: 9px;
+      display: inline-flex; align-items: center; justify-content: center;
+      overflow: hidden; flex: 0 0 auto;
+    }
+    header .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    header .subtitle { font-size: 12px; color: var(--muted); margin-left: 4px; }
+    nav { display: flex; gap: 4px; margin-left: auto; }
+    nav button { background: transparent; color: var(--muted); border: 1px solid transparent;
+                 padding: 6px 12px; border-radius: 6px; cursor: pointer; font: inherit; }
+    nav button.active { color: var(--text); background: var(--bg); border-color: var(--line); }
+    nav button:hover:not(.active) { color: var(--text); }
+    .theme-toggle { background: transparent; border: 1px solid var(--line); color: var(--muted);
+                    padding: 6px 10px; border-radius: 6px; cursor: pointer; font: inherit;
+                    margin-left: 8px; }
+    .theme-toggle:hover { color: var(--text); }
+    main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+    section { display: none; }
+    section.active { display: block; }
+    h2 { margin: 0 0 16px; font-size: 16px; font-weight: 600; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+             padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow); }
+    label { display: block; margin: 8px 0 4px; color: var(--muted); font-size: 12px;
+            text-transform: uppercase; letter-spacing: .04em; }
+    input, textarea, select { width: 100%; background: var(--bg); color: var(--text);
+              border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px;
+              font: inherit; }
+    input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+    textarea { min-height: 80px; resize: vertical; }
+    button.primary { background: var(--accent); color: var(--accent-fg); border: 0;
+                     padding: 8px 14px; border-radius: 6px; cursor: pointer;
+                     font: 600 13px/1 system-ui; }
+    button.primary:hover { filter: brightness(.95); }
+    button.secondary { background: var(--panel); color: var(--text); border: 1px solid var(--line);
+                       padding: 8px 14px; border-radius: 6px; cursor: pointer; font: inherit; }
+    button.secondary:hover { background: var(--bg); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px;
+           font: 12px/1.4 ui-monospace, Consolas, monospace; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13px; }
+    th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; }
+    tr.fail td { background: rgba(220,38,38,.05); }
+    tr:hover td { background: var(--row-hover); cursor: pointer; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+            font-weight: 500; }
+    .pill.pass { background: rgba(22,163,74,.12); color: var(--good); }
+    .pill.fail { background: rgba(220,38,38,.12); color: var(--bad); }
+    .pill.warn { background: rgba(217,119,6,.12); color: var(--warn); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+            padding: 12px 16px; box-shadow: var(--shadow); }
+    .stat .v { font-size: 24px; font-weight: 600; }
+    .stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+    .progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden;
+                margin: 8px 0; }
+    .progress > div { height: 100%; background: var(--accent); transition: width .2s; }
+    .log { font: 12px/1.5 ui-monospace, Consolas, monospace; background: var(--code-bg);
+           border: 1px solid var(--line); border-radius: 6px; padding: 8px;
+           max-height: 240px; overflow: auto; white-space: pre-wrap; }
+    .insight { border-left: 3px solid var(--line); padding: 8px 12px; margin: 8px 0;
+               background: var(--bg); border-radius: 0 6px 6px 0; }
+    .insight.high { border-color: var(--bad); }
+    .insight.medium { border-color: var(--warn); }
+    .insight.low { border-color: var(--accent); }
+    .insight.info { border-color: var(--good); }
+    .insight h4 { margin: 0 0 4px; font-size: 13px; }
+    .insight p { margin: 4px 0; color: var(--muted); font-size: 13px; }
+    .kb-row { display: grid; grid-template-columns: 1fr 2fr 1fr 60px 40px; gap: 8px;
+              align-items: center; margin-bottom: 6px; }
+    .toast { position: fixed; bottom: 16px; right: 16px; background: var(--panel);
+             border: 1px solid var(--line); border-radius: 6px; padding: 10px 16px;
+             opacity: 0; transition: opacity .2s; pointer-events: none;
+             box-shadow: var(--shadow); }
+    .toast.show { opacity: 1; }
+    pre { background: var(--code-bg); border: 1px solid var(--line); padding: 12px;
+          border-radius: 6px; overflow: auto; font-size: 12px; white-space: pre-wrap; }
+    .muted { color: var(--muted); }
+    .step { background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+            padding: 12px 14px; margin-bottom: 8px; }
+    .step .num { display: inline-block; width: 22px; height: 22px; border-radius: 50%;
+                 background: var(--accent); color: var(--accent-fg); text-align: center;
+                 line-height: 22px; font-size: 12px; font-weight: 600; margin-right: 8px; }
+    .step strong { font-size: 13px; }
+    .step .body { margin-top: 6px; font-size: 13px; color: var(--muted); }
+    .step .body code { font-size: 11.5px; }
+
+    /* ---- Maker Copilot side dock ---- */
+    body.with-dock main { margin-right: 380px; }
+    #dock { position: fixed; top: 0; right: 0; bottom: 0; width: 360px;
+            background: var(--panel); border-left: 1px solid var(--line);
+            display: flex; flex-direction: column; box-shadow: -2px 0 12px rgba(0,0,0,0.04);
+            z-index: 100; transform: translateX(0); transition: transform .2s; }
+    #dock.collapsed { transform: translateX(100%); pointer-events: none; }
+    #dock .dock-head { padding: 10px 14px; border-bottom: 1px solid var(--line);
+                       display: flex; align-items: center; gap: 8px; }
+    #dock .dock-head .badge { width: 26px; height: 26px; border-radius: 7px;
+            display: inline-flex; align-items: center; justify-content: center;
+            overflow: hidden; flex: 0 0 auto; }
+    #dock .dock-head .badge img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    #dock .dock-head h3 { margin: 0; font-size: 14px; flex: 1; }
+    #dock .dock-toggle { background: transparent; border: none; color: var(--muted);
+            cursor: pointer; font-size: 16px; padding: 2px 8px; }
+    #dock .dock-body { flex: 1; overflow-y: auto; padding: 12px; }
+    #dock .msg { margin-bottom: 12px; }
+    #dock .msg.user { text-align: right; }
+    #dock .msg .bubble { display: inline-block; max-width: 90%; padding: 8px 12px;
+            border-radius: 10px; font-size: 13px; line-height: 1.45;
+            background: var(--bg); border: 1px solid var(--line); text-align: left; }
+    #dock .msg.user .bubble { background: var(--accent); color: var(--accent-fg);
+            border-color: var(--accent); }
+    #dock .tool-card { margin-top: 6px; border: 1px solid var(--line); border-radius: 8px;
+            padding: 10px; background: var(--bg); font-size: 12px; }
+    #dock .tool-card h4 { margin: 0 0 6px; font-size: 12px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.5px; }
+    #dock .tool-card pre { font-size: 11px; max-height: 220px; }
+    #dock .file-list { display: flex; flex-direction: column; gap: 6px; }
+    #dock .file-list summary { cursor: pointer; font-weight: 600; }
+    #dock .dock-input { border-top: 1px solid var(--line); padding: 10px;
+            display: flex; gap: 6px; }
+    #dock .dock-input textarea { min-height: 36px; max-height: 120px; resize: vertical;
+            font-size: 13px; padding: 6px 8px; }
+    #dock .quick { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px 8px; }
+    #dock .quick button { font-size: 11px; padding: 3px 8px; background: var(--bg);
+            border: 1px solid var(--line); border-radius: 12px; cursor: pointer;
+            color: var(--muted); }
+    #dock .quick button:hover { color: var(--text); }
+    #dock-fab { position: fixed; bottom: 16px; right: 16px; width: 48px; height: 48px;
+            border-radius: 50%; background: var(--panel); border: 1px solid var(--line);
+            box-shadow: var(--shadow); cursor: pointer; padding: 0; overflow: hidden;
+            display: none; z-index: 99; }
+    #dock-fab img { width: 100%; height: 100%; object-fit: cover; }
+    body.dock-collapsed #dock-fab { display: block; }
+    body.dock-collapsed main { margin-right: 0; }
+
+    /* ---- Topic scaffold inline panel (Knowledge tab) ---- */
+    .scaffold-row { display: flex; gap: 6px; margin-top: 8px; }
+    .scaffold-row input { flex: 1; }
+    #scaffold_result { margin-top: 10px; }
+    #scaffold_result.empty { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo" aria-label="ESS Maker">
+      <img src="/static/logo.png" alt="ESS Maker" />
+    </span>
+    <h1>ESS Maker</h1>
+    <span class="subtitle">build, test &amp; iterate your employee self-service agent</span>
+    <nav>
+      <button data-tab="setup" class="active">1. Setup</button>
+      <button data-tab="knowledge">2. Knowledge &amp; Scope</button>
+      <button data-tab="run">3. Run Eval</button>
+      <button data-tab="results">4. Results &amp; Insights</button>
+      <button data-tab="publish">5. Publish</button>
+    </nav>
+    <button class="theme-toggle" id="theme_btn" title="Toggle light/dark mode" onclick="toggleTheme()">🌙</button>
+  </header>
+  <main>
+
+    <!-- 1. SETUP -->
+    <section id="setup" class="active">
+      <div class="panel">
+        <h2>Target agent for ESS Maker</h2>
+        <div class="row">
+          <div>
+            <label>Environment ID</label>
+            <input id="env_id" disabled />
+            <label>Schema name</label>
+            <input id="schema" disabled />
+            <label>Tenant</label>
+            <input id="tenant" disabled />
+          </div>
+          <div>
+            <p class="muted" style="margin-top:32px">
+              ESS Maker connects to this agent to run evals and surface fixes. Values come from <code>.env</code> &mdash; edit there to point ESS Maker at a different agent.
+            </p>
+            <button class="primary" onclick="testConnection()">Test connection</button>
+            <pre id="conn_result" style="margin-top:8px"></pre>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Runtime diagnostics (Application Insights)</h2>
+        <p class="muted">When the agent crashes into <code>[System] - On Error</code>, ESS Maker pulls the real exception from Application Insights and shows it next to the failing prompt — including the topic, action and a fix hint.</p>
+        <div id="ai_status" class="muted" style="margin:12px 0">checking…</div>
+
+        <h3 style="margin:18px 0 8px; font-size:14px">How to enable it (one-time, ~5 min)</h3>
+
+        <div class="step">
+          <span class="num">1</span><strong>Create or pick an Application Insights resource in Azure</strong>
+          <div class="body">
+            In the Azure portal, search for <strong>Application Insights</strong>. Either pick an existing resource (e.g. one your team already uses for ESS) or click <strong>+ Create</strong> — choose <em>Workspace-based</em>, same region as your Copilot Studio environment.
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="num">2</span><strong>Copy its Connection String</strong>
+          <div class="body">
+            Open the App Insights resource → <strong>Overview</strong> page → click the <strong>Connection String</strong> field to copy. It looks like:<br>
+            <code>InstrumentationKey=…;IngestionEndpoint=https://…;ApplicationId=…</code>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="num">3</span><strong>Paste it into Copilot Studio</strong>
+          <div class="body">
+            Open your agent → <strong>Settings</strong> (gear, top-right) → <strong>Advanced</strong> → <strong>Application Insights</strong>. Paste the connection string.<br>
+            Toggle on: <em>Enable logging</em>, <em>Log conversation details</em>, <em>Log sensitive properties</em>, <em>Node execution events</em>. Click <strong>Save</strong>, then <strong>Publish</strong> the agent.
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="num">4</span><strong>Give ESS Maker read-only access</strong>
+          <div class="body">
+            In the Azure portal, on the same App Insights resource → <strong>Configure → API Access</strong> → <strong>+ Create API key</strong>. Name it <code>ess-maker-readonly</code>, check <strong>Read telemetry</strong>, click <strong>Generate key</strong>. Copy the key — it's shown only once.<br>
+            Also copy the <strong>Application ID</strong> (GUID at the top of the API Access page).
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="num">5</span><strong>Tell ESS Maker about it</strong>
+          <div class="body">
+            Add the two values to the agent config and restart this server, or paste the Connection String below and we'll extract them automatically:<br>
+            <input id="ai_paste" placeholder="Paste the App Insights Connection String here…" style="margin-top:8px"/>
+            <button class="primary" style="margin-top:8px" onclick="saveAppInsightsFromConnString()">Save &amp; verify</button>
+            <span id="ai_save_msg" class="muted" style="margin-left:8px"></span>
+          </div>
+        </div>
+
+        <p class="muted" style="margin-top:12px">After step 3, send any message to the agent in Copilot Studio's Test pane. Telemetry takes ~2 min to land. Then re-run an eval and click any failed item — the real underlying error will appear at the top of the Insights pane.</p>
+      </div>
+    </section>
+
+    <!-- 2. KNOWLEDGE & SCOPE -->
+    <section id="knowledge">
+      <div class="panel">
+        <h2>Agent identity</h2>
+        <label>Display name</label>
+        <input id="display_name" />
+        <label>What is this agent for? (1-2 sentences, plain English)</label>
+        <textarea id="description" placeholder="e.g. Helps employees with HR and IT self-service questions like benefits, time off, and laptop support."></textarea>
+        <label>Behavior instructions (tone, scope, refusals)</label>
+        <textarea id="instruction" placeholder="e.g. Always be empathetic. Only answer HR/IT employee questions. If asked about anything else, politely redirect."></textarea>
+      </div>
+
+      <div class="panel">
+        <h2>Knowledge sources</h2>
+        <p class="muted">Each source's <strong>description</strong> is what the orchestrator uses to decide which to cite. Be specific.</p>
+        <div id="kb_list"></div>
+        <button class="secondary" onclick="addKb()">+ Add source</button>
+        <hr style="margin:18px 0;border:none;border-top:1px solid var(--border)"/>
+        <h3 style="margin:0 0 6px">Add a SharePoint knowledge source to the live agent</h3>
+        <p class="muted">Scaffolds a Copilot Studio knowledge-source YAML, copies it into the target solution, and (optionally) packs &amp; imports via <code>pac</code>.</p>
+        <div class="kb-row">
+          <input id="kbpub_name" placeholder="Benefits SharePoint"/>
+          <input id="kbpub_desc" placeholder="Covers health, dental, retirement, FSA, etc."/>
+          <input id="kbpub_url" placeholder="https://contoso.sharepoint.com/sites/HRBenefits"/>
+          <input id="kbpub_priority" type="number" min="1" max="10" value="1"/>
+          <button onclick="publishKb()">Publish to agent</button>
+        </div>
+        <label style="margin-top:6px"><input id="kbpub_pac" type="checkbox" checked/> Also pack &amp; import via <code>pac</code> (uncheck to scaffold + apply only)</label>
+        <label style="margin-top:6px;display:block">
+          Target solution folder (repo-relative)
+          <input id="kbpub_target" placeholder="e.g. sources/dev/solutions/MyUnmanagedHRCustomization/Solution" style="width:100%;margin-top:4px"/>
+          <span class="muted" style="font-size:12px">Leave blank to use the default HR solution. The default is <strong>managed/first-party</strong> and cannot be re-imported — create your own unmanaged solution in Power Apps and point here.</span>
+        </label>
+        <div id="kbpub_status" style="margin-top:10px"></div>
+        <pre id="kbpub_result" class="muted" style="margin-top:8px;white-space:pre-wrap;max-height:240px;overflow:auto"></pre>
+      </div>
+
+      <div class="panel">
+        <h2>Business scenarios (free-form)</h2>
+        <label>What real questions should this agent handle? (one per line)</label>
+        <textarea id="business_scenarios" style="min-height:120px"
+                  placeholder="How do I request time off?&#10;What is my health insurance plan?&#10;My laptop won't boot, what should I do?"></textarea>
+
+        <div class="step" style="margin-top:12px">
+          <strong>Need a topic for one of these scenarios?</strong>
+          <div class="body">
+            ESS Maker can scaffold a Copilot Studio topic + flow XML from the
+            <a href="https://github.com/microsoft/CopilotStudioSamples/tree/main/EmployeeSelfServiceAgent" target="_blank">official sample library</a>.
+            Paste a single scenario below and click <em>Generate topic</em>.
+            Nothing is published — you'll get a staged topic to review and apply.
+          </div>
+          <div class="scaffold-row">
+            <input id="scaffold_prompt" placeholder="e.g. what is my leave balance" />
+            <button class="primary" onclick="scaffoldTopic()">Generate topic</button>
+          </div>
+          <div id="scaffold_result" class="empty"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Topic templates</h2>
+        <p class="muted">
+          ESS Maker uses these templates to scaffold a topic + flow when you click <em>Generate topic</em> above.
+          Built-in templates cover Workday absence balance, request time off, cancel time off, pay statement, and benefits.
+          Add your own to cover ServiceNow, Graph, or any other connector.
+        </p>
+        <div id="template_list" class="file-list" style="margin-bottom:10px"></div>
+        <details>
+          <summary><strong>+ Register a new template</strong></summary>
+          <div style="margin-top:10px">
+            <label>Key (unique id, e.g. <code>servicenow.incident.create</code>)</label>
+            <input id="tpl_key" placeholder="servicenow.incident.create" />
+            <label>Name (shown to makers)</label>
+            <input id="tpl_name" placeholder="ServiceNow – Create incident" />
+            <label>System</label>
+            <select id="tpl_system">
+              <option value="workday">workday</option>
+              <option value="servicenow">servicenow</option>
+              <option value="graph">graph</option>
+              <option value="generic" selected>generic</option>
+            </select>
+            <label>Sample URL (link to a CopilotStudioSamples folder)</label>
+            <input id="tpl_url" placeholder="https://github.com/microsoft/CopilotStudioSamples/..." />
+            <label>Trigger keywords (comma-separated)</label>
+            <input id="tpl_keywords" placeholder="open ticket, report incident, log issue" />
+            <label>Description</label>
+            <textarea id="tpl_desc" style="min-height:60px" placeholder="What this topic does in one sentence."></textarea>
+            <label>Notes (optional, shown to maker after scaffolding)</label>
+            <textarea id="tpl_notes" style="min-height:50px" placeholder="Wiring tips, required connectors, etc."></textarea>
+            <button class="primary" onclick="registerTemplate()" style="margin-top:8px">Register template</button>
+          </div>
+        </details>
+      </div>
+
+      <button class="primary" onclick="saveConfig()">Save</button>
+    </section>
+
+    <!-- 3. RUN EVAL -->
+    <section id="run">
+      <div class="panel">
+        <h2>Run an evaluation</h2>
+        <label>Scenario file</label>
+        <select id="scenarios_path"></select>
+        <label>Concurrency (parallel conversations)</label>
+        <input type="number" id="concurrency" value="3" min="1" max="10" />
+        <div style="margin-top:12px">
+          <button class="primary" id="run_btn" onclick="startEval()">▶ Run eval</button>
+        </div>
+      </div>
+      <div class="panel" id="run_progress" style="display:none">
+        <h2>Progress</h2>
+        <div class="progress"><div id="bar" style="width:0%"></div></div>
+        <p id="progress_text" class="muted"></p>
+        <div class="log" id="run_log"></div>
+      </div>
+    </section>
+
+    <!-- 4. RESULTS -->
+    <section id="results">
+      <div class="stats">
+        <div class="stat"><div class="v" id="s_total">—</div><div class="l">Total</div></div>
+        <div class="stat"><div class="v" id="s_pass">—</div><div class="l">Pass</div></div>
+        <div class="stat"><div class="v" id="s_rate">—</div><div class="l">Pass rate</div></div>
+        <div class="stat"><div class="v" id="s_p95">—</div><div class="l">Latency p95</div></div>
+      </div>
+      <div class="panel" id="topic_failures_panel" style="margin-top:16px;display:none">
+        <h2>Failures by topic</h2>
+        <p class="muted">Topics ranked by fail-rate. Click <em>Suggest fixes</em> to scope improvement suggestions to that topic.</p>
+        <div id="topic_failures_list"></div>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <div class="panel">
+          <h2>Items</h2>
+          <div style="margin-bottom:8px">
+            <select id="filter" onchange="renderItems()">
+              <option value="all">All</option>
+              <option value="fail">Failures only</option>
+              <option value="pass">Passes only</option>
+            </select>
+          </div>
+          <div style="max-height:520px; overflow:auto">
+            <table>
+              <thead><tr><th></th><th>Prompt</th><th>Latency</th></tr></thead>
+              <tbody id="items_tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <h2 id="detail_title">Select an item</h2>
+          <div id="detail"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Cross-cutting suggestions</h2>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button class="secondary" onclick="suggest('agent_description')">Improve agent description</button>
+          <button class="secondary" onclick="suggest('knowledge')">Improve knowledge descriptions</button>
+          <button class="secondary" onclick="suggest('instruction')">Improve agent instructions</button>
+        </div>
+        <pre id="suggestion" style="margin-top:12px"></pre>
+      </div>
+    </section>
+
+    <!-- 5. PUBLISH -->
+    <section id="publish">
+      <div class="panel">
+        <h2>Publish to Copilot Studio</h2>
+        <p class="muted">
+          ESS Maker can pack the HR solution and import it into your environment using
+          the Power Platform CLI (<code>pac</code>). You sign in once with
+          <code>pac auth create --environment &lt;ENV_GUID&gt;</code>; ESS Maker reuses that profile.
+        </p>
+        <div id="pac_status" class="step" style="margin-bottom:12px">Checking <code>pac</code>…</div>
+        <button class="secondary" onclick="refreshPacStatus()">Refresh status</button>
+        <button class="primary" id="pac_publish_btn" onclick="pacPublish()">Pack &amp; publish HR solution</button>
+        <p class="muted" style="margin-top:6px; font-size:12px">
+          Source: <code>sources/dev/solutions/CopilotForEmployeeSelfServiceHR/Solution</code>.
+          Target environment: <code id="pac_env">(loading)</code>.
+        </p>
+        <pre id="publish_result" style="margin-top:12px"></pre>
+      </div>
+    </section>
+
+  </main>
+  <div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ---------- Theme ----------
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = $('theme_btn'); if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
+  try { localStorage.setItem('ess_theme', t); } catch {}
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+applyTheme((() => { try { return localStorage.getItem('ess_theme') || 'light'; } catch { return 'light'; } })());
+
+async function saveAppInsightsFromConnString() {
+  const raw = ($('ai_paste').value || '').trim();
+  const msg = $('ai_save_msg');
+  if (!raw) { msg.textContent = 'Paste the connection string first.'; return; }
+  // Parse: InstrumentationKey=...;IngestionEndpoint=...;ApplicationId=...
+  const parts = Object.fromEntries(raw.split(';').filter(Boolean).map(p => {
+    const i = p.indexOf('='); return [p.slice(0, i).trim(), p.slice(i + 1).trim()];
+  }));
+  const appId = parts.ApplicationId || parts.applicationid;
+  if (!appId) { msg.textContent = 'No ApplicationId in connection string. Make sure you copied the full string.'; return; }
+  const apiKey = prompt('Paste your App Insights READ-ONLY API key (created in Azure portal → App Insights → Configure → API Access).');
+  if (!apiKey) { msg.textContent = 'Cancelled — no API key provided.'; return; }
+  msg.textContent = 'Saving…';
+  const r = await fetch('/api/diagnostics-config', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ app_id: appId, api_key: apiKey }),
+  }).then(r => r.json());
+  if (r.ok) {
+    msg.textContent = '✓ Saved. App Insights is now connected.';
+    loadConfig();
+  } else {
+    msg.textContent = 'Error: ' + (r.error || 'unknown');
+  }
+}
+function tab(name) {
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('active', s.id === name));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  if (name === 'results') loadResults();
+  if (name === 'run') loadScenarioFiles();
+  if (name === 'knowledge') loadTemplates();
+  if (name === 'publish') refreshPacStatus();
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => tab(b.dataset.tab));
+
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ---------- 1. Setup ----------
+async function loadConfig() {
+  const r = await fetch('/api/config').then(r => r.json());
+  $('env_id').value = r.target.env_id || '';
+  $('schema').value = r.target.schema || '';
+  $('tenant').value = r.target.tenant || '';
+  const a = r.agent;
+  $('display_name').value = a.display_name || '';
+  $('description').value = a.description || '';
+  $('instruction').value = a.instruction || '';
+  $('business_scenarios').value = a.business_scenarios || '';
+  renderKb(a.knowledge || []);
+  const ai = $('ai_status');
+  if (ai) {
+    if (r.diagnostics?.appinsights_configured) {
+      ai.innerHTML = `<span class="pill pass">CONFIGURED</span> Application ID <code>${esc(r.diagnostics.appinsights_app_id)}</code> — runtime errors will be auto-fetched on each failed prompt.`;
+    } else {
+      ai.innerHTML = `<span class="pill warn">NOT CONFIGURED</span> Set <code>APPINSIGHTS_APP_ID</code> and <code>APPINSIGHTS_API_KEY</code> in <code>.env</code> to enable real-error lookup.`;
+    }
+  }
+}
+async function testConnection() {
+  $('conn_result').textContent = 'Testing...';
+  const r = await fetch('/api/test-connection', { method: 'POST' }).then(r => r.json());
+  $('conn_result').textContent = JSON.stringify(r, null, 2);
+}
+
+// ---------- 2. Knowledge & Scope ----------
+let kb = [];
+function renderKb(list) {
+  kb = list.length ? list : [{ id: crypto.randomUUID(), name: '', description: '', url: '', priority: 1 }];
+  $('kb_list').innerHTML = '<div class="kb-row"><strong>Name</strong><strong>Description</strong><strong>URL</strong><strong>Priority</strong><span></span></div>' +
+    kb.map((s, i) => `
+      <div class="kb-row">
+        <input value="${esc(s.name)}" oninput="kb[${i}].name=this.value" placeholder="Benefits KB"/>
+        <input value="${esc(s.description)}" oninput="kb[${i}].description=this.value" placeholder="Covers health, dental, retirement…"/>
+        <input value="${esc(s.url || '')}" oninput="kb[${i}].url=this.value" placeholder="https://…"/>
+        <input type="number" min="1" max="10" value="${s.priority || 1}" oninput="kb[${i}].priority=+this.value"/>
+        <button class="secondary" onclick="kb.splice(${i},1);renderKb(kb)">×</button>
+      </div>`).join('');
+}
+function addKb() { kb.push({ id: crypto.randomUUID(), name: '', description: '', url: '', priority: 1 }); renderKb(kb); }
+
+async function publishKb() {
+  const body = {
+    name: $('kbpub_name').value.trim(),
+    description: $('kbpub_desc').value.trim(),
+    url: $('kbpub_url').value.trim(),
+    priority: +($('kbpub_priority').value || 1),
+    publish: $('kbpub_pac').checked,
+    target_solution_subdir: $('kbpub_target').value.trim() || null,
+  };
+  const status = $('kbpub_status');
+  const result = $('kbpub_result');
+  status.innerHTML = '';
+  result.textContent = '';
+  if (!body.name || !body.url) {
+    status.innerHTML = '<div class="insight high"><h4>Name and URL are required.</h4></div>';
+    return;
+  }
+  status.innerHTML = `<div class="muted">${body.publish
+    ? 'Scaffolding → applying → packing → importing… (this can take 1-3 minutes)'
+    : 'Scaffolding → applying…'}</div>`;
+  try {
+    const r = await fetch('/api/knowledge/publish', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(r => r.json());
+    result.textContent = JSON.stringify(r, null, 2);
+    if (r.ok) {
+      status.innerHTML = `<div class="insight" style="background:#e8f5e9"><h4>Published. Knowledge source <code>${esc(r.scaffold?.kb_id||'')}</code> applied${body.publish ? ' and imported' : ''}.</h4></div>`;
+    } else {
+      const pub = r.publish || {};
+      const reason = pub.error || r.error || 'Publish failed.';
+      const hint = pub.hint || pub.solution?.hint || '';
+      status.innerHTML = `<div class="insight high"><h4>${esc(reason)}</h4>${hint ? `<p><strong>Fix:</strong> ${esc(hint)}</p>` : ''}<p class="muted">Step that failed: <code>${esc(pub.step || r.stage || '?')}</code></p></div>`;
+    }
+  } catch (e) {
+    status.innerHTML = `<div class="insight high"><h4>Network error</h4><p>${esc(String(e))}</p></div>`;
+  }
+}
+function esc(s) { return (s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+async function saveConfig() {
+  const cfg = {
+    display_name: $('display_name').value,
+    description: $('description').value,
+    instruction: $('instruction').value,
+    business_scenarios: $('business_scenarios').value,
+    knowledge: kb.filter(s => s.name),
+  };
+  await fetch('/api/config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cfg) });
+  toast('Saved.');
+}
+
+// ---------- 3. Run Eval ----------
+async function loadScenarioFiles() {
+  const files = await fetch('/api/scenarios').then(r => r.json());
+  $('scenarios_path').innerHTML = files.map(f =>
+    `<option value="${esc(f.path)}">${esc(f.name)} (${f.count} scenarios)</option>`).join('');
+}
+
+async function startEval() {
+  const r = await fetch('/api/run-eval', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ scenarios_path: $('scenarios_path').value, concurrency: +$('concurrency').value }),
+  }).then(r => r.json());
+  $('run_progress').style.display = 'block';
+  $('run_log').textContent = '';
+  $('progress_text').textContent = `0 / ${r.total}`;
+  $('bar').style.width = '0%';
+  $('run_btn').disabled = true;
+  const es = new EventSource(`/api/jobs/${r.job_id}/stream`);
+  es.onmessage = (e) => {
+    const ev = JSON.parse(e.data);
+    if (ev._end) {
+      es.close(); $('run_btn').disabled = false;
+      toast(ev.state === 'done' ? 'Eval complete.' : 'Eval ended: ' + ev.state);
+      if (ev.state === 'done') tab('results');
+      return;
+    }
+    const pct = (ev.done / ev.total) * 100;
+    $('bar').style.width = pct + '%';
+    $('progress_text').textContent = `${ev.done} / ${ev.total}`;
+    const mark = ev.passed ? '✓' : '✗';
+    $('run_log').textContent = `${mark} [${ev.id}] ${ev.prompt} (${ev.latency_ms}ms) ${ev.failure_mode}\n` + $('run_log').textContent;
+  };
+}
+
+// ---------- 4. Results ----------
+let RESULTS = null;
+async function loadResults() {
+  RESULTS = await fetch('/api/results/latest').then(r => r.json());
+  const s = RESULTS.summary;
+  $('s_total').textContent = s.total ?? '—';
+  $('s_pass').textContent = s.pass ?? '—';
+  $('s_rate').textContent = s.pass_rate ? Math.round(s.pass_rate * 100) + '%' : '—';
+  $('s_p95').textContent = s.latency_p95 ? s.latency_p95 + 'ms' : '—';
+  renderTopicFailures(s.topic_failures || []);
+  renderItems();
+}
+
+function renderTopicFailures(rows) {
+  const panel = $('topic_failures_panel');
+  const list = $('topic_failures_list');
+  const failing = rows.filter(r => r.fail > 0);
+  if (!failing.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  list.innerHTML = `<table>
+    <thead><tr><th>Topic</th><th>Pass</th><th>Fail</th><th>Fail rate</th><th>Top failure modes</th><th></th></tr></thead>
+    <tbody>${failing.map(r => `
+      <tr>
+        <td><code>${esc(r.topic)}</code></td>
+        <td>${r.pass}</td>
+        <td>${r.fail}</td>
+        <td>${Math.round(r.fail_rate * 100)}%</td>
+        <td class="muted">${esc(Object.entries(r.failure_modes).map(([k,v]) => `${k}×${v}`).join(', '))}</td>
+        <td><button class="secondary" onclick="suggestForTopic('${esc(r.topic)}')">Suggest fixes</button></td>
+      </tr>`).join('')}</tbody></table>`;
+}
+
+async function suggestForTopic(topic) {
+  $('suggestion').textContent = `Generating suggestions for topic ${topic}…`;
+  try {
+    const r = await fetch('/api/suggest', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target: 'topic', topic: topic }),
+    }).then(r => r.json());
+    $('suggestion').textContent = r.suggestion || JSON.stringify(r, null, 2);
+  } catch (e) {
+    $('suggestion').textContent = 'Error: ' + e;
+  }
+}
+function renderItems() {
+  if (!RESULTS) return;
+  const f = $('filter').value;
+  const tbody = $('items_tbody');
+  tbody.innerHTML = '';
+  RESULTS.items.forEach((it, idx) => {
+    if (f === 'fail' && it.passed) return;
+    if (f === 'pass' && !it.passed) return;
+    const tr = document.createElement('tr');
+    if (!it.passed) tr.className = 'fail';
+    tr.innerHTML = `<td><span class="pill ${it.passed ? 'pass' : 'fail'}">${it.passed ? 'PASS' : 'FAIL'}</span></td>
+                    <td>${esc(it.prompt)}</td><td>${it.latency_ms}ms</td>`;
+    tr.onclick = () => loadDetail(idx, it);
+    tbody.appendChild(tr);
+  });
+}
+async function loadDetail(idx, brief) {
+  $('detail_title').textContent = brief.id;
+  const d = await fetch(`/api/results/${idx}`).then(r => r.json());
+  const ins = (d.insight.insights || []).map(i => `
+    <div class="insight ${i.severity}">
+      <h4>${esc(i.title)} <span class="pill ${i.severity === 'high' ? 'fail' : i.severity === 'medium' ? 'warn' : 'pass'}">${i.severity}</span></h4>
+      <p><strong>Why:</strong> ${esc(i.why)}</p>
+      ${i.fix ? `<p><strong>Fix:</strong> ${esc(i.fix)}</p>` : ''}
+    </div>`).join('');
+  $('detail').innerHTML = `
+    <p class="muted"><strong>Prompt</strong></p>
+    <pre>${esc(brief.prompt)}</pre>
+    <p class="muted"><strong>Reply</strong></p>
+    <pre>${esc(d.result.raw_reply || '(empty)')}</pre>
+    ${d.result.error ? `<p class="muted"><strong>Error</strong></p><pre>${esc(d.result.error)}</pre>` : ''}
+    ${d.result.conversation_id ? `<p class="muted"><strong>conversation_id</strong> <code>${esc(d.result.conversation_id)}</code></p>` : ''}
+    <h2 style="margin-top:16px">Insights</h2>
+    ${ins}
+    ${renderAppInsights(d.insight.app_insights)}
+  `;
+}
+
+function renderAppInsights(ai) {
+  if (!ai) return '';
+  if (!ai.configured) return `<p class="muted" style="margin-top:12px">App Insights not configured — set it up in Setup tab to get the real underlying error.</p>`;
+  if (!ai.ok) return `<p class="muted" style="margin-top:12px">App Insights lookup failed: ${esc(ai.error || '')}</p>`;
+  if (!ai.rows || !ai.rows.length) return `<p class="muted" style="margin-top:12px">App Insights had no events for this conversation.</p>`;
+  const rows = ai.rows.map(r => `<tr><td>${esc(r.name||'')}</td><td>${esc(r.topic||'')}</td><td>${esc(r.actionName||'')}</td><td>${esc((r.errorCode||r.errorMessage||'').slice(0,200))}</td></tr>`).join('');
+  return `
+    <h2 style="margin-top:16px">Real error from App Insights</h2>
+    <div class="insight high">
+      <h4>${esc(ai.summary.headline)}</h4>
+      ${ai.summary.fix_hint ? `<p><strong>Fix:</strong> ${esc(ai.summary.fix_hint)}</p>` : ''}
+    </div>
+    <details style="margin-top:8px"><summary class="muted">All ${ai.rows.length} events from App Insights</summary>
+      <table style="margin-top:8px"><thead><tr><th>Event</th><th>Topic</th><th>Action</th><th>Error / Message</th></tr></thead><tbody>${rows}</tbody></table>
+    </details>
+  `;
+}
+async function suggest(target) {
+  $('suggestion').textContent = 'Thinking...';
+  const r = await fetch('/api/suggest', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ target, failed_item_ids: [] }),
+  }).then(r => r.json());
+  $('suggestion').textContent = r.suggestion;
+}
+
+// ---------- 5. Publish ----------
+async function doPublish(target) {
+  const r = await fetch('/api/publish', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ target }),
+  }).then(r => r.json());
+  $('publish_result').textContent = JSON.stringify(r, null, 2);
+}
+async function refreshPacStatus() {
+  $('pac_status').innerHTML = 'Checking <code>pac</code>…';
+  const r = await fetch('/api/pac/status').then(r => r.json());
+  renderPacStatus(r);
+}
+function renderPacStatus(r) {
+  const el = $('pac_status');
+  if (!r.installed) {
+    el.innerHTML = `<strong>❌ pac CLI not installed.</strong>
+      <div class="body">${esc(r.hint || '')}</div>`;
+    $('pac_publish_btn').disabled = true;
+    return;
+  }
+  if (!r.auth) {
+    el.innerHTML = `<strong>⚠️ pac installed (${esc(r.version || '')}) but no active auth profile.</strong>
+      <div class="body">Run in a terminal (replace with your env GUID):
+        <pre><code>pac auth create --environment &lt;YOUR_ENV_GUID&gt;</code></pre>
+        then click <em>Refresh status</em>.</div>`;
+    $('pac_publish_btn').disabled = true;
+    return;
+  }
+  el.innerHTML = `<strong>✅ pac ready (${esc(r.version || '')})</strong>
+    <div class="body">Active profile: <code>${esc(r.auth.raw || '')}</code></div>`;
+  $('pac_publish_btn').disabled = false;
+}
+async function pacPublish() {
+  const btn = $('pac_publish_btn');
+  btn.disabled = true; btn.textContent = 'Packing & importing… (this can take a minute)';
+  $('publish_result').textContent = '';
+  try {
+    const r = await fetch('/api/pac/publish', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ publish: true }),
+    }).then(r => r.json());
+    $('publish_result').textContent = JSON.stringify(r, null, 2);
+    if (r.ok) toast('Published to ' + (r.zip_path || 'environment'));
+    else toast('Publish failed at: ' + (r.step || '?'));
+  } catch (e) {
+    $('publish_result').textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Pack & publish HR solution';
+  }
+}
+
+// ---------- Topic templates registry ----------
+async function loadTemplates() {
+  const r = await fetch('/api/topics/templates').then(r => r.json());
+  const list = $('template_list');
+  if (!list) return;
+  list.innerHTML = (r.templates || []).map(t => `
+    <details>
+      <summary><code>${esc(t.key)}</code> — ${esc(t.name)}
+        <span class="muted">[${esc(t.system)}]</span></summary>
+      <div style="padding:6px 12px">
+        <p>${esc(t.description || '(no description)')}</p>
+        ${t.sample_url ? `<p><a href="${esc(t.sample_url)}" target="_blank">${esc(t.sample_url)}</a></p>` : ''}
+        <p class="muted">Triggers: ${(t.trigger_keywords || []).map(k => `<code>${esc(k)}</code>`).join(' ')}</p>
+        ${t.notes ? `<p class="muted">${esc(t.notes)}</p>` : ''}
+      </div>
+    </details>`).join('');
+}
+async function registerTemplate() {
+  const body = {
+    key: $('tpl_key').value.trim(),
+    name: $('tpl_name').value.trim(),
+    system: $('tpl_system').value,
+    sample_url: $('tpl_url').value.trim(),
+    description: $('tpl_desc').value.trim(),
+    notes: $('tpl_notes').value.trim(),
+    trigger_keywords: $('tpl_keywords').value.trim(),
+  };
+  if (!body.key || !body.name || !body.trigger_keywords) {
+    toast('key, name, and at least one keyword are required'); return;
+  }
+  const r = await fetch('/api/topics/templates/register', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  }).then(r => r.json());
+  if (!r.ok) { toast('Failed: ' + (r.error || 'unknown')); return; }
+  toast('Registered ' + body.key);
+  ['tpl_key','tpl_name','tpl_url','tpl_desc','tpl_notes','tpl_keywords'].forEach(id => $(id).value = '');
+  loadTemplates();
+}
+
+// ---------- Topic scaffolder (Knowledge tab) ----------
+async function scaffoldTopic() {
+  const prompt = $('scaffold_prompt').value.trim();
+  const out = $('scaffold_result');
+  if (!prompt) { toast('Enter a scenario first.'); return; }
+  out.classList.remove('empty');
+  out.innerHTML = '<p class="muted">Matching template…</p>';
+  const r = await fetch('/api/topics/scaffold', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ prompt }),
+  }).then(r => r.json());
+  out.innerHTML = renderScaffoldResult(r);
+}
+function renderScaffoldResult(r) {
+  if (!r.ok) {
+    const cands = (r.candidates || []).map(c => `<li>${esc(c.key)} (${(c.score*100|0)}%)</li>`).join('');
+    return `<div class="insight high">
+      <h4>No template matched</h4>
+      <p>${esc((r.notes || []).join(' '))}</p>
+      ${cands ? `<details><summary>Partial matches</summary><ul>${cands}</ul></details>` : ''}
+    </div>`;
+  }
+  const files = (r.files || []).map(f => `
+    <details><summary>${esc(f.name)} <span class="muted">(${esc(f.language)})</span></summary>
+      <pre><code>${esc(f.contents)}</code></pre>
+    </details>`).join('');
+  return `<div class="insight info">
+    <h4>Drafted: ${esc(r.template_name)} <span class="muted">(${(r.confidence*100|0)}% confidence)</span></h4>
+    <p>Reference sample: <a href="${esc(r.sample_url)}" target="_blank">${esc(r.sample_url)}</a></p>
+    <p class="muted">Topic id: <code>${esc(r.topic_id)}</code> • staged at <code>${esc(r.proposed_dir)}</code></p>
+    <div class="file-list">${files}</div>
+    <ul>${(r.notes || []).map(n => `<li>${esc(n)}</li>`).join('')}</ul>
+    <button class="primary" onclick="applyTopic('${esc(r.topic_id)}')">Apply to solution</button>
+  </div>`;
+}
+async function applyTopic(topicId) {
+  const r = await fetch('/api/topics/apply', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ topic_id: topicId }),
+  }).then(r => r.json());
+  if (!r.ok) { toast('Apply failed: ' + (r.error || 'unknown')); return; }
+  toast('Applied to ' + r.applied_to);
+}
+
+// ---------- Maker Copilot side dock ----------
+const DOCK_KEY = 'ess_dock_collapsed';
+function initDock() {
+  const collapsed = localStorage.getItem(DOCK_KEY) === '1';
+  setDockCollapsed(collapsed);
+  // Greet
+  appendDockMsg('assistant',
+    "Hi — I'm the **Maker Copilot**. Ask me to scaffold topics, run evals, summarize results, " +
+    "or diagnose conversations. Type **help** for the full menu.");
+}
+function setDockCollapsed(collapsed) {
+  document.body.classList.toggle('with-dock', !collapsed);
+  document.body.classList.toggle('dock-collapsed', collapsed);
+  $('dock').classList.toggle('collapsed', collapsed);
+  const btn = $('dock_toggle_btn');
+  if (btn) { btn.textContent = collapsed ? '‹' : '›'; btn.title = collapsed ? 'Expand' : 'Collapse'; }
+  localStorage.setItem(DOCK_KEY, collapsed ? '1' : '0');
+}
+function toggleDock() {
+  const isCollapsed = document.body.classList.contains('dock-collapsed');
+  setDockCollapsed(!isCollapsed);
+}
+function appendDockMsg(role, text, toolCalls) {
+  const body = $('dock_body');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + role;
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+  bub.innerHTML = mdLite(text || '');
+  wrap.appendChild(bub);
+  if (Array.isArray(toolCalls)) {
+    for (const tc of toolCalls) wrap.appendChild(renderToolCall(tc));
+  }
+  body.appendChild(wrap);
+  body.scrollTop = body.scrollHeight;
+}
+function mdLite(s) {
+  // very small markdown subset: **bold**, `code`, links, line breaks
+  return esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>')
+    .replace(/\n/g, '<br/>');
+}
+function renderToolCall(tc) {
+  const div = document.createElement('div');
+  div.className = 'tool-card';
+  if (tc.tool === 'scaffold_topic') {
+    div.innerHTML = `<h4>Scaffolded topic</h4>` + renderScaffoldResult(tc.result);
+  } else if (tc.tool === 'apply_topic') {
+    div.innerHTML = `<h4>Applied</h4><pre>${esc(JSON.stringify(tc.result, null, 2))}</pre>`;
+  } else if (tc.tool === 'diagnose') {
+    div.innerHTML = `<h4>App Insights</h4><pre>${esc(JSON.stringify(tc.result.summary || tc.result, null, 2))}</pre>`;
+  } else if (tc.tool === 'navigate') {
+    div.innerHTML = `<h4>Navigate</h4><button class="secondary" onclick="tab('${esc(tc.result.tab)}')">Go to ${esc(tc.result.tab)}</button>`;
+  } else {
+    div.innerHTML = `<h4>${esc(tc.tool)}</h4><pre>${esc(JSON.stringify(tc.result, null, 2))}</pre>`;
+  }
+  return div;
+}
+async function sendDockMessage(text) {
+  const msg = (text || $('dock_input').value).trim();
+  if (!msg) return;
+  $('dock_input').value = '';
+  appendDockMsg('user', msg);
+  const r = await fetch('/api/maker-chat', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ message: msg, context: {} }),
+  }).then(r => r.json()).catch(e => ({ text: 'Error: ' + e.message }));
+  appendDockMsg('assistant', r.text || '', r.tool_calls);
+}
+function dockKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDockMessage(); }
+}
+
+loadConfig();
+loadScenarioFiles();
+loadTemplates();
+initDock();
+// Populate env id label in publish panel as soon as config arrives.
+fetch('/api/config').then(r => r.json()).then(c => {
+  const el = $('pac_env'); if (el) el.textContent = c.target?.env_id || '(unknown)';
+});
+</script>
+
+<aside id="dock">
+  <div class="dock-head">
+    <span class="badge" aria-label="ESS Maker">
+      <img src="/static/logo.png" alt="" />
+    </span>
+    <h3>Maker Copilot</h3>
+    <button class="dock-toggle" id="dock_toggle_btn" title="Collapse" onclick="toggleDock()">›</button>
+  </div>
+  <div class="dock-body" id="dock_body"></div>
+  <div class="quick">
+    <button onclick="sendDockMessage('help')">help</button>
+    <button onclick="sendDockMessage('list topic templates')">templates</button>
+    <button onclick="sendDockMessage('summarize results')">summarize</button>
+    <button onclick="sendDockMessage('list proposed')">proposed</button>
+  </div>
+  <div class="dock-input">
+    <textarea id="dock_input" placeholder="e.g. make a topic for what is my leave balance" onkeydown="dockKey(event)"></textarea>
+    <button class="primary" onclick="sendDockMessage()">Send</button>
+  </div>
+</aside>
+<button id="dock-fab" title="Open Maker Copilot" onclick="toggleDock()" aria-label="Open Maker Copilot">
+  <img src="/static/logo.png" alt="" />
+</button>
+
+</body>
+</html>

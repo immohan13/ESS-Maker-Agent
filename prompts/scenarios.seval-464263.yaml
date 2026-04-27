@@ -1,0 +1,764 @@
+scenarios:
+- id: seval-eb0cef2125
+  category: Mixed
+  prompt: How do I manage messages in Outlook 2010 while I'm out of office?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-9be212139f
+  category: Mixed
+  prompt: What resources are available to help my children adapt to a new school in
+    another country if we relocate?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-8d7ff757cc
+  category: Mixed
+  prompt: What if I can't login to the support portal when submitting a hardware support
+    ticket from my phone?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-511772a03a
+  category: Mixed
+  prompt: How do I create rules in Outlook 2010?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-d2bdd9c27e
+  category: Mixed
+  prompt: How can I clear cookies in Chrome?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-f0b218effe
+  category: Mixed
+  prompt: What certifications can I sign up for courses to get help with?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-15a12667a3
+  category: Mixed
+  prompt: About how many data breaches were reported between 2015 and 2025?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-83f4b9b109
+  category: Mixed
+  prompt: Is there are approval process for applying to training programs?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-7166ec7234
+  category: Mixed
+  prompt: What are the online training platforms?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-979b857c3b
+  category: Mixed
+  prompt: What actions does the company take to promote diversity?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-408086a6f3
+  category: Mixed
+  prompt: What can I expense on a business trip?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-24a2dcea24
+  category: Mixed
+  prompt: What documentation is required to renew my vehicle?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-8d492af6be
+  category: Mixed
+  prompt: How do I set up automatic replies in Outlook 2010?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-33c974e5c2
+  category: Mixed
+  prompt: What expenses are reimbursed under the travel policy?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-90880f650b
+  category: Mixed
+  prompt: Can other websites read the cookies created by a different site?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-76db2fbe79
+  category: Mixed
+  prompt: What command can I use to reset network configuration for my MAC?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-6d9126c629
+  category: Mixed
+  prompt: Is mental health counseling part of employee benefits?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-9fa080d0ed
+  category: Mixed
+  prompt: When should I renew my vehicle pass?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-e6f16c6506
+  category: Mixed
+  prompt: How do I add the ADT plugin to Eclipse?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-8ed0bd0afa
+  category: Mixed
+  prompt: How should I travel for a 500km business trip?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-28b9a3f1e1
+  category: Mixed
+  prompt: How do I remove a contact group member in Outlook 2010?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-6125dca468
+  category: Mixed
+  prompt: What are the financial planning and tax implications of relocating for work?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-58f8929eba
+  category: Mixed
+  prompt: What caused data breaches between 2015 and 2025?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-7169b0059b
+  category: Mixed
+  prompt: How do I enable and disable wireless laptop connections in Mac osx?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-5960d665de
+  category: Mixed
+  prompt: How does the Employee Assistance Program support mental health?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-b6a31fb44c
+  category: Mixed
+  prompt: What wellness programs does the company offer?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-5b08eff5aa
+  category: Mixed
+  prompt: What device settings will help me optimize battery life on my Android?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-1aa7b38313
+  category: Mixed
+  prompt: How do I report a hardware issue using my mobile device?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-7f22c7740b
+  category: Mixed
+  prompt: How do I enable and disable wireless laptop connections on a Dell Quickset
+    Utility?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-04f8deb185
+  category: Mixed
+  prompt: What is the annual limit for the company's Matching Gifts Program?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-a02f304a21
+  category: Mixed
+  prompt: What is the financial impact of a data breach?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-e8f5ca2ca4
+  category: Mixed
+  prompt: What is the process for signing up for services through Employee Assistance
+    Program?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-8d6d2ba48f
+  category: Mixed
+  prompt: What can affect battery consumption on Android devices?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-b938935d9e
+  category: Mixed
+  prompt: Are there certain emails that can't be deleted in Outlook?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-25cbc5314a
+  category: Mixed
+  prompt: How many hours of paid Volunteer Time Off do employees receive each year?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-6da93f5f47
+  category: Mixed
+  prompt: What kind of support does the company offer to help my spouse or partner
+    continue their career after we relocate?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-9d6bf87ef5
+  category: Mixed
+  prompt: How do I get reimbursed for expenses during a business trip?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-0ae8f19bf2
+  category: Mixed
+  prompt: How do I configure users on my new Linux server?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-0c756d9236
+  category: Mixed
+  prompt: Was there an increase in data breaches around COVID-19?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-86a279a820
+  category: Mixed
+  prompt: Do I need to provide medical documentation for disability leave?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-1ce0f2c9e1
+  category: Mixed
+  prompt: What are the legal and administrative Considerations for relocating to a
+    new country?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-8b58a21235
+  category: Mixed
+  prompt: When are tax documents made available each year?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-7b7f7a8522
+  category: Mixed
+  prompt: What are CRUs?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-ed429e3a51
+  category: Mixed
+  prompt: Are EAP services available during weekends and holidays?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-780b3eb08a
+  category: Mixed
+  prompt: What is the primary DNS for Google?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-34e1e6fa68
+  category: Mixed
+  prompt: How can I troubleshoot network connectivity issues?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-a4d2bfea28
+  category: Mixed
+  prompt: Who should I contact if my tax document is incorrect?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-0ea4feb460
+  category: Mixed
+  prompt: What health insurance benefits are provided to employees?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-bfb64394bd
+  category: Mixed
+  prompt: What do I do if hardware in my Dell computer fails?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-083d247113
+  category: Mixed
+  prompt: Can cookies execute code or deliver viruses?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-b64b98e867
+  category: Mixed
+  prompt: How long is the warranty on my new Dell computer?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-3d7f86c5dd
+  category: Mixed
+  prompt: Do apps running in the background consume battery power on my Android?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-e3636fa591
+  category: Mixed
+  prompt: What IDEs can I use with the ADT plugin?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-9fb6db3bee
+  category: Mixed
+  prompt: How do I enable and disable wireless laptop connections in Windows Vista?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-96b31e6819
+  category: Mixed
+  prompt: What mental health counseling services are offered?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-be5a9b9617
+  category: Mixed
+  prompt: How do I see the most commonly used applications on my Windows 8 device?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-4bab84e11c
+  category: Mixed
+  prompt: How can I troubleshoot audio issues?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-0d3274c782
+  category: Mixed
+  prompt: When can a deleted email not be recovered?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-31155faa01
+  category: Mixed
+  prompt: How do I enable and disable wireless laptop connections in Windows XP Pro?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-286d244dca
+  category: Mixed
+  prompt: How long does it take to process my vehicle renewal?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-b2b90c591d
+  category: Mixed
+  prompt: Is Windows 8 designed for touch?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-2a66af8795
+  category: Mixed
+  prompt: How do I find my devices serial number when submitting a hardware support
+    ticket from my phone?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-fdbf5cce4c
+  category: Mixed
+  prompt: Is prior approval required for business travel?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-9d88e71310
+  category: Mixed
+  prompt: Where can I recover a deleted email in Outlook?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-e028a27218
+  category: Mixed
+  prompt: How can I troubleshoot keyboard and mouse malfunctions?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-179f3b6384
+  category: Mixed
+  prompt: How do I permanently delete emails in Outlook?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-1c4716827d
+  category: Mixed
+  prompt: What is the retention period for deleted emails?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-bc2fc74931
+  category: Mixed
+  prompt: What steps should I follow to download my tax forms?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-bbbead715d
+  category: Mixed
+  prompt: What are the hardware requirements to set up a new Linux server?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-ed12f183dc
+  category: Mixed
+  prompt: Where do I report a phishing incident?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-8f6e326df0
+  category: Mixed
+  prompt: How do I initiate a search in Windows 8?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-36a44b300f
+  category: Mixed
+  prompt: How do I enroll in training and development programs?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-16bbe43068
+  category: Mixed
+  prompt: How do I respond to a phishing attempt?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-da93e4db4c
+  category: Mixed
+  prompt: Is there a fee for replacing my access badge?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-ac961aa0a7
+  category: Mixed
+  prompt: What steps should I follow to clear all of my cookies in Firefox?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-65aa6553a2
+  category: Mixed
+  prompt: Are dependents covered under the employee health insurance plan?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-5f266f3662
+  category: Mixed
+  prompt: Help me troubleshoot an error when I try to download the ADT plugin
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-a02f3519cd
+  category: Mixed
+  prompt: Does the company provide cultural orientation or language training for family
+    members during relocation?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-8b5d5d5f95
+  category: Mixed
+  prompt: Are there mentorship programs available?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-ed755f11af
+  category: Mixed
+  prompt: How do I create a contact group in Outlook 2010?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-e9f293b3e0
+  category: Mixed
+  prompt: Can I suggest new training topics to the development center?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-683c117380
+  category: Mixed
+  prompt: Is Boxing Day a paid holiday?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-bbfda84643
+  category: Mixed
+  prompt: How do I submit a travel reimbursement claim?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-68947d9542
+  category: Mixed
+  prompt: How are recruitment practices made unbiased?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-ad073e08d7
+  category: Mixed
+  prompt: What corporate apps are required on my enrolled Android device?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-13d8abdb9c
+  category: Mixed
+  prompt: Can I report hardware issues with peripherals like keyboards or mice through
+    the mobile portal?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-a7f9c397ce
+  category: Mixed
+  prompt: How do I add someone to a contact group in Outlook 2010?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-a93f5deb63
+  category: Mixed
+  prompt: What should I do next after I've installed the operating system on a new
+    Linux server?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-78135eb2a9
+  category: Mixed
+  prompt: How do I make sure my computer is up to date for my MAC device?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-05a9dba85a
+  category: Mixed
+  prompt: How do I set up VPN on my Android?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-e368b9deec
+  category: Mixed
+  prompt: What types of organizations are eligible for corporate donations?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-756f9c5652
+  category: Mixed
+  prompt: What is the contact information for the support teams who help employees
+    relocate?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-d5636567ff
+  category: Mixed
+  prompt: What is the fee to renew my vehicle?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control
+- id: seval-7b986342ee
+  category: Mixed
+  prompt: How do I check the status of my work visa application?
+  expected_assertions: []
+  tags:
+  - seval
+  - segment:golden-sharepoint-queries-da
+  - seval_exp:control

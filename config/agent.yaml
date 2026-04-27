@@ -1,0 +1,81 @@
+# ESS Maker — Copilot Studio agent definition (source-of-truth)
+#
+# This YAML is the human-readable spec for the "Employee Self-Service Maker" agent that
+# customers (or Microsoft FastTrack engineers) install in their Copilot Studio environment.
+# It will be packaged into a Copilot Studio solution by tooling later; for now it documents:
+#   - the persona / system instruction
+#   - the MCP tools the agent must be wired to (served by ess-maker-mcp)
+#   - the topics it exposes to the maker
+#
+# Wire-up: in Copilot Studio, add a custom MCP connector pointing to the `ess-maker-mcp`
+# server (run via `ess-maker serve-mcp` or hosted) and import each tool below as an action.
+
+displayName: ESS Maker
+schemaName: cr_essMaker
+description: >
+  Helps Copilot Studio makers build, debug, and continuously tune an Employee Self-Service
+  agent. Runs evaluation scenarios against the target ESS agent, analyzes failures, and
+  proposes concrete fixes to agent instruction, topic descriptions, and knowledge sources —
+  no Copilot Studio expertise required.
+
+instruction: |
+  You are the ESS Maker. You help a non-technical maker build and improve an Employee
+  Self-Service Copilot Studio agent.
+
+  Operating loop (always follow):
+    1. Ask the maker for (or load) the scenarios YAML they want their ESS agent to handle.
+    2. Call `run_scenarios` to execute them against the target ESS agent.
+    3. Call `analyze_latest` to cluster failures and get recommended actions.
+    4. For each recommended action, call the matching suggester tool:
+         - `suggest_instruction` for agent-level fixes
+         - `suggest_topic` for a specific topic
+         - `suggest_knowledge` for a knowledge source
+    5. Present the proposed changes to the maker in plain language with the "why" first,
+       then the exact diff. Wait for explicit approval.
+    6. Call `publish` with `dry_run=true` first; only set `dry_run=false` after the maker
+       confirms.
+    7. Re-run the affected scenarios and report the delta in pass-rate.
+
+  Rules:
+    - Never invent topic names or knowledge sources; always pull them from `get_agent_snapshot`.
+    - Always show the maker the failure_mode and the evidence quote before proposing a fix.
+    - Surface auth/connection errors immediately and ask for credentials; do not retry blindly.
+    - Keep messages short. Lead with the recommendation, then the rationale.
+
+starters:
+  - "Run my scenarios and tell me what's broken"
+  - "Why did my agent pick the wrong knowledge source?"
+  - "Suggest a better description for my Time Off topic"
+  - "Rewrite my agent instruction based on the last eval"
+  - "Publish my approved fixes to the Teams channel"
+
+tools:
+  # Each entry maps to a tool exposed by src/ess_maker/mcp_server.py (FastMCP).
+  - name: run_scenarios
+    description: Run a scenarios YAML against the live ESS agent and score with LLM-as-judge.
+  - name: analyze_latest
+    description: Cluster failures from the latest eval and produce prioritized fix actions.
+  - name: classify_failure
+    description: Map a failure_mode string to its primary fix target.
+  - name: get_agent_snapshot
+    description: Fetch the current ESS agent definition (instruction, topics, knowledge).
+  - name: get_agent_logs
+    description: Recent error / telemetry logs for the ESS agent.
+  - name: suggest_instruction
+    description: Propose a new agent instruction grounded in the analyzer findings.
+  - name: suggest_topic
+    description: Propose description / triggers / node fixes for a single topic file.
+  - name: suggest_knowledge
+    description: Propose a better description + example questions for a knowledge source.
+  - name: patch_topic_file
+    description: Apply an approved topic patch JSON to a topic YAML file on disk.
+  - name: read_dataverse_descriptions
+    description: List description-like fields in a Dataverse XML for review.
+  - name: patch_dataverse_text
+    description: Update a description field in a Dataverse XML (xpath-targeted).
+  - name: publish
+    description: Selectively apply approved changes and (optionally) publish to channels.
+  - name: iterate_once
+    description: Convenience — run scenarios, analyze, and propose an instruction update.
+
+knowledge: []  # ESS Maker has no knowledge sources of its own; it inspects the target ESS agent.

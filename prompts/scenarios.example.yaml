@@ -1,0 +1,53 @@
+scenarios:
+  - id: hr-leave-001
+    category: HR
+    prompt: "I want to take 3 days off next week for a family event."
+    expected_topic: HRWorkdayAbsenceEnterTimeOff_MultiDay
+    expected_assertions:
+      - "Agent should ask for start and end dates"
+      - "Agent should ask for absence type"
+      - "Agent should submit to Workday"
+    tags: [workday, leave]
+
+  - id: hr-address-001
+    category: HR
+    prompt: "Update my home address to 123 Main St, Redmond WA 98052."
+    expected_topic: HRAddressUpdate
+    expected_assertions:
+      - "Agent should confirm the new address"
+      - "Agent should write back to Workday"
+
+  - id: hr-policy-001
+    category: HR
+    prompt: "How many sick days do I get per year?"
+    expected_knowledge_source: SharePoint-HRPolicies
+    expected_assertions:
+      - "Answer cites the HR sick leave policy"
+      - "Answer is grounded; no invented numbers"
+
+  - id: it-password-001
+    category: IT
+    prompt: "I forgot my laptop password and I'm locked out."
+    expected_topic: ITPasswordReset
+    expected_assertions:
+      - "Agent walks through reset or files a ServiceNow ticket"
+
+  - id: it-software-001
+    category: IT
+    prompt: "How do I install the corporate VPN client on a new Mac?"
+    expected_knowledge_source: ServiceNow-ITKB
+    expected_assertions:
+      - "Answer references the official VPN install KB article"
+
+  - id: hr-payslip-001
+    category: HR
+    prompt: "Show me my last payslip."
+    expected_topic: HRWorkdayPayslip
+    expected_assertions:
+      - "Agent authenticates the user before showing pay info"
+
+  - id: ambiguous-001
+    category: Mixed
+    prompt: "I need help."
+    expected_assertions:
+      - "Agent asks a disambiguating question rather than guessing"
