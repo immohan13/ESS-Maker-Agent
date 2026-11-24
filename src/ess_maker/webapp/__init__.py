@@ -34,6 +34,30 @@ STATIC_DIR.mkdir(exist_ok=True)
 app = FastAPI(title="ESS Maker")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+
+# Lets the Copilot Studio page / browser extension call the local Doctor API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"^(https://copilotstudio(\.preview)?\.microsoft\.com|https://[a-z0-9.-]*devui[a-z0-9.-]*\.(office\.net|office\.com|microsoft\.com)|chrome-extension://[a-p]{32}|extension://[a-p]{32})$",
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+    allow_private_network=True,
+)
+
+
+@app.middleware("http")
+async def _private_network_access(request: Request, call_next):
+    # Chromium Private Network Access: public origin -> localhost preflight needs this header.
+    response = await call_next(request)
+    if request.headers.get("access-control-request-private-network") == "true":
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
+
+from ess_maker.doctor.api import router as doctor_router  # noqa: E402
+
+app.include_router(doctor_router)
+
 
 # ---------- Storage (file-backed, KISS) ----------
 

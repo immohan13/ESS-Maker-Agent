@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     # Dataverse Web API (direct KB writes). If empty, ESS Maker auto-resolves
     # from `pac auth list` (active profile's Environment Url).
     dataverse_org_url: str = ""
+    # AAD tenant that owns the Dataverse environment (when it differs from the default az account)
+    dataverse_tenant_id: str = ""
 
     # MCP servers
     mcs_mcp_url: str = ""
@@ -49,6 +51,29 @@ class Settings(BaseSettings):
     # appinsights_api_key = a key generated under App Insights -> API Access (read-only is fine)
     appinsights_app_id: str = ""
     appinsights_api_key: str = ""
+
+    # ESS Doctor
+    # Tenant IDs whose conversations may be inspected via Kusto (comma-separated). Required.
+    doctor_allowed_tenants: str = ""
+    # Copilot Studio agent that "Load from Copilot Studio" reads directly (new-UX agents live behind the PVA gateway).
+    doctor_cs_tenant_id: str = ""
+    doctor_cs_environment_id: str = ""
+    doctor_cs_agent_id: str = ""
+    # Copilot Studio gateway for the environment's region (internal endpoint; set in .env).
+    doctor_cs_gateway: str = ""
+    # Copilot Studio runtime telemetry in Kusto (internal; set in .env).
+    doctor_kusto_db: str = ""
+    doctor_kusto_region: str = "US"
+    # Region → cluster URL, comma-separated: "US=https://…,EU-WEU=https://…"
+    doctor_kusto_clusters: str = ""
+    # AAD tenant used to get Kusto tokens.
+    doctor_kusto_aad_tenant: str = ""
+    doctor_schema_prefix: str = "msdyn_copilotforemployeeselfservice"
+    # Folder of agent exports (*.yml) offered in the UI picker, and ESS baseline exports per persona.
+    doctor_samples_dir: str = ""
+    doctor_baseline_hr: str = ""
+    doctor_baseline_it: str = ""
+    doctor_baseline_hub: str = ""
 
     # Runtime
     ess_maker_workdir: Path = Field(default=Path("./.workdir"))

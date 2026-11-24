@@ -95,7 +95,9 @@ async def get_access_token(org_url: str) -> tuple[str | None, str | None]:
     try:
         # Use shell=False with the resolved path; .cmd needs shell on Windows
         # asyncio. Use subprocess_shell to handle .cmd reliably.
-        cmd = f'"{az}" account get-access-token --resource "{org_url}" --output json'
+        tenant = (settings.__dict__.get("dataverse_tenant_id") or "").strip()
+        tenant_arg = f' --tenant "{tenant}"' if tenant else ""
+        cmd = f'"{az}" account get-access-token --resource "{org_url}"{tenant_arg} --output json'
         proc = await asyncio.create_subprocess_shell(
             cmd,
             stdout=asyncio.subprocess.PIPE,

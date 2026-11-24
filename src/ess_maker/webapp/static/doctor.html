@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ESS Doctor</title>
+<link rel="icon" type="image/png" href="/static/logo.png" />
+<link rel="apple-touch-icon" href="/static/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+<style>
+  /* Theme: Microsoft Ignite 2026 visual identity — deep navy, grid, neon orange / magenta / aqua tracks. */
+  :root {
+    --navy: #03043a; --navy-2: #0b0f5c; --ignite-orange: #ff6a1f; --ignite-amber: #ffa62b; --ignite-magenta: #d43fd1;
+    --ignite-aqua: #4fe3e8; --ignite-blue: #3f63ff;
+    --bg: #f4f5fb; --panel: #ffffff; --ink: #11133a; --muted: #5b6080; --line: #e4e6f0;
+    --brand: #e2560c; --brand-soft: #fff1e8; --high: #d92d4a; --med: #e08a00; --low: #2f6bff; --info: #6b7280;
+    --ok: #0f9d6b;
+    --grad: linear-gradient(135deg, var(--ignite-orange) 0%, #ff8a1f 55%, var(--ignite-amber) 100%);
+    --track: linear-gradient(90deg, var(--ignite-orange), var(--ignite-magenta) 50%, var(--ignite-aqua));
+    --mono: "JetBrains Mono", "Cascadia Code", ui-monospace, "SF Mono", SFMono-Regular, Consolas, monospace;
+    /* Inter for reading; SF Pro / Segoe Sans render from the OS where present (they can't be hosted). */
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe Sans Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    --display: "Plus Jakarta Sans", "Segoe Sans Display", "SF Pro Display", var(--sans);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.55 var(--sans); color: var(--ink); -webkit-font-smoothing: antialiased; font-feature-settings: "cv11", "ss01";
+    background: radial-gradient(1200px 500px at 85% -120px, rgba(79,227,232,.10), transparent 60%),
+                radial-gradient(900px 420px at -10% -80px, rgba(255,106,31,.08), transparent 60%), var(--bg); background-attachment: fixed; }
+  button { font-family: inherit; }
+  h1, h2, h3 { font-family: var(--display); letter-spacing: -.01em; }
+  header { position: relative; overflow: hidden; display: flex; align-items: center; gap: 16px; padding: 18px 28px; color: #fff;
+    background:
+      radial-gradient(600px 220px at 78% 120%, rgba(212,63,209,.45), transparent 70%),
+      radial-gradient(500px 200px at 100% -30%, rgba(63,99,255,.45), transparent 70%),
+      repeating-linear-gradient(90deg, rgba(120,140,255,.10) 0 1px, transparent 1px 64px),
+      repeating-linear-gradient(0deg, rgba(120,140,255,.10) 0 1px, transparent 1px 64px),
+      linear-gradient(100deg, var(--navy) 35%, var(--navy-2) 100%); }
+  header::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--track); }
+  header .tracks { position: absolute; right: -10px; top: -30px; height: 150px; pointer-events: none; opacity: .95; }
+  header > *:not(.tracks) { position: relative; z-index: 1; }
+  header h1 { font-size: 22px; margin: 0; font-weight: 800; }
+  header h1 .glow { background: linear-gradient(90deg, #fff, #ffd8bf 40%, var(--ignite-aqua)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  header .logo { width: 40px; height: 40px; border-radius: 10px; flex: none; box-shadow: 0 0 0 2px rgba(255,255,255,.15), 0 6px 24px rgba(79,227,232,.35); }
+  section h2 { display: flex; align-items: center; gap: 10px; }
+  section h2 .logo { width: 28px; height: 28px; border-radius: 7px; box-shadow: 0 4px 14px rgba(255,106,31,.25); }
+  header .sub { color: #c9d0ff; font-size: 13px; }
+  .layout { display: grid; grid-template-columns: 236px 1fr; min-height: calc(100vh - 76px); }
+  nav { background: rgba(255,255,255,.75); backdrop-filter: blur(8px); border-right: 1px solid var(--line); padding: 16px 10px; }
+  nav button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: none; padding: 10px 12px; margin-bottom: 4px;
+    font: inherit; font-weight: 500; color: var(--muted); cursor: pointer; border-radius: 10px; position: relative; transition: background .15s, color .15s; }
+  nav button:hover { background: #f1f2fa; color: var(--ink); }
+  nav button.active { color: var(--navy); background: linear-gradient(90deg, #fff1e8, #f3f6ff); font-weight: 700; box-shadow: inset 0 0 0 1px #ffd9c2; }
+  nav button { flex-direction: column; align-items: flex-start; gap: 1px; }
+  nav .lbl { font-size: 14.5px; }
+  nav .hint { font-size: 12px; font-weight: 400; color: #8a8fab; line-height: 1.35; }
+  nav button.active .hint { color: #b4581c; }
+  nav button.active::before { content: ""; position: absolute; left: -10px; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: linear-gradient(180deg, var(--ignite-orange), var(--ignite-magenta), var(--ignite-aqua)); }
+  nav .n { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; font-weight: 700; color: var(--muted); background: #eceef7; flex: none; }
+  nav button.active .n { color: #fff; background: var(--grad); box-shadow: 0 4px 12px rgba(255,106,31,.4); }
+  main { padding: 26px 32px; max-width: 1320px; }
+  section { display: none; } section.active { display: block; animation: rise .35s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .pipehd { background: linear-gradient(100deg, var(--navy), var(--navy-2)); color: #fff; border-radius: 10px; padding: 9px 14px; margin: 14px 0 8px; position: relative; overflow: hidden; }
+  .pipehd::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--track); }
+  .pipehd span { color: #ffd2b8; margin-left: 8px; font-size: 12px; }
+  .pipehd div { color: #cbd5e1; font-size: 12px; margin-top: 2px; }
+  .chip.sees { background: #fee2e2; color: #991b1b; }
+  .pipe { display: flex; align-items: stretch; gap: 6px; margin-bottom: 12px; }
+  .pipebox { flex: 1; background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--ok); border-radius: 8px; padding: 8px 12px; }
+  .pipebox.warn { border-top-color: var(--med); } .pipebox.bad { border-top-color: var(--high); }
+  .pipebox .v { font-size: 22px; font-weight: 700; }
+  .pipe .arrow { align-self: center; color: #9ca3af; }
+  h2 { font-size: 24px; font-weight: 800; margin: 0 0 6px; color: var(--navy); } .lead { color: var(--muted); margin: 0 0 18px; font-size: 15px; max-width: 900px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 14px;
+    box-shadow: 0 1px 2px rgba(3,4,58,.04), 0 8px 24px -12px rgba(3,4,58,.12); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px -12px rgba(3,4,58,.18); }
+  .stat .k { font-size: 12px; color: var(--muted); } .stat .v { font-family: var(--display); font-size: 24px; font-weight: 800; color: var(--navy); }
+  .bar { height: 6px; background: #eef0f4; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  .bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--ok), var(--ignite-aqua)); }
+  button.btn, select, input, textarea { font: inherit; }
+  button.btn { border: 0; background: var(--grad); color: #fff; font-weight: 600; padding: 9px 16px; border-radius: 10px; cursor: pointer;
+    box-shadow: 0 6px 16px -6px rgba(255,106,31,.65), inset 0 1px 0 rgba(255,255,255,.25); transition: transform .12s, box-shadow .12s, filter .12s; }
+  button.btn:hover { transform: translateY(-1px); filter: saturate(1.1); box-shadow: 0 10px 22px -8px rgba(255,106,31,.75), inset 0 1px 0 rgba(255,255,255,.25); }
+  button.btn:active { transform: translateY(0); }
+  button.btn:focus-visible, nav button:focus-visible { outline: 3px solid var(--ignite-aqua); outline-offset: 2px; }
+  button.btn.ghost { background: #fff; color: var(--navy); box-shadow: inset 0 0 0 1.5px #c9cdf0; }
+  button.btn.ghost:hover { box-shadow: inset 0 0 0 1.5px var(--ignite-orange), 0 6px 14px -8px rgba(255,106,31,.5); color: var(--brand); }
+  button.btn:disabled { opacity: .5; cursor: default; transform: none; }
+  select, input[type=text], textarea { border: 1px solid #d3d6ea; border-radius: 10px; padding: 8px 10px; background: #fff; transition: border-color .15s, box-shadow .15s; }
+  select:focus, input[type=text]:focus, textarea:focus { outline: none; border-color: var(--ignite-orange); box-shadow: 0 0 0 4px rgba(255,106,31,.15); }
+  input[type=file]::file-selector-button { font: inherit; font-weight: 600; color: var(--navy); background: #fff; border: 0; border-radius: 10px; padding: 8px 14px; margin-right: 10px;
+    box-shadow: inset 0 0 0 1.5px #c9cdf0; cursor: pointer; transition: box-shadow .12s, color .12s; }
+  input[type=file]::file-selector-button:hover { color: var(--brand); box-shadow: inset 0 0 0 1.5px var(--ignite-orange); }
+  textarea { width: 100%; min-height: 80px; font-family: var(--mono); font-size: 12px; }
+  label.f { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  .sev { font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; color: #fff; }
+  .sev.high { background: var(--high); } .sev.medium { background: var(--med); } .sev.low { background: var(--low); } .sev.info { background: var(--info); }
+  .chip { font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #f1f3f8; color: #374151; }
+  .chip.template { background: #fef3c7; color: #92400e; } .chip.maker { background: #e0e7ff; color: #3730a3; }
+  .finding { border-left: 4px solid var(--line); }
+  .finding.high { border-left-color: var(--high); } .finding.medium { border-left-color: var(--med); }
+  .finding.low { border-left-color: var(--low); } .finding.info { border-left-color: var(--info); }
+  .finding h3 { font-size: 15px; margin: 6px 0; }
+  .kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; margin-top: 8px; }
+  .kv > b { color: var(--muted); font-weight: 500; font-size: 12px; }
+  code, .mono { font-family: var(--mono); font-size: 12px; }
+  .quote { background: #f8fafc; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; }
+  .fix { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 8px; white-space: pre-wrap; }
+  .tests span { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px; background: #f1f5f9; border-radius: 999px; font-size: 12px; }
+  .history { font-size: 12px; color: #6b4e00; background: #fffbeb; border: 1px dashed #fcd34d; border-radius: 6px; padding: 6px 8px; margin-top: 8px; }
+  .split { display: grid; grid-template-columns: 1.1fr .9fr; gap: 14px; align-items: start; }
+  .split > * { min-width: 0; }
+  main { min-width: 0; overflow-wrap: anywhere; }
+  .viewer { max-height: calc(100vh - 110px); overflow: auto; font-family: var(--mono); font-size: 12px; background: var(--navy); color: #e2e8f0; border-radius: 12px; padding: 8px 0; }
+  .viewer div { padding: 0 10px; white-space: pre-wrap; } .viewer .no { color: #64748b; display: inline-block; width: 52px; user-select: none; }
+  .viewer .hl-high { background: rgba(198,40,40,.35); } .viewer .hl-medium { background: rgba(217,119,6,.3); }
+  .viewer .hl-low { background: rgba(37,99,235,.3); } .viewer .h { color: #a5b4fc; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; } th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .rtable td { min-width: 140px; } .rtable td:nth-child(3), .rtable td:nth-child(4), .rtable td:nth-child(5) { min-width: 200px; } .rtable tr:hover td { background: #fafbff; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .verdict { padding: 14px 16px; border-radius: 10px; color: #fff; margin-bottom: 14px; }
+  .verdict.rai { background: #9f1239; } .verdict.tool { background: #b45309; } .verdict.search { background: #1d4ed8; }
+  .verdict.routing { background: #6d28d9; } .verdict.synthesis { background: #0f766e; } .verdict.runtime { background: #991b1b; }
+  .verdict h3 { margin: 0 0 4px; font-size: 17px; }
+  .diffblock { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
+  .diffblock .hd { padding: 6px 10px; display: flex; gap: 8px; align-items: center; background: #f8fafc; border-bottom: 1px solid var(--line); }
+  .diffblock .ln { font-family: var(--mono); font-size: 12px; padding: 1px 10px; white-space: pre-wrap; }
+  .sbs { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 10px; }
+  .sbs .bar { display: grid; grid-template-columns: 1fr 1fr; background: #f8fafc; border-bottom: 1px solid var(--line); }
+  .sbs .bar > div { padding: 8px 10px; display: flex; gap: 8px; align-items: center; }
+  .sbs .bar > div + div { border-left: 1px solid var(--line); }
+  .sbs .body { max-height: 620px; overflow: auto; }
+  .sbs table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; }
+  .sbs td { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word; vertical-align: top; padding: 2px 8px; border: 0; }
+  .sbs td.n { width: 34px; color: #94a3b8; text-align: right; user-select: none; padding-right: 4px; }
+  .sbs td.o { border-right: 1px solid var(--line); }
+  .sbs tr.del td.o, .sbs tr.mod td.o { background: #fef2f2; }
+  .sbs tr.add td.w, .sbs tr.mod td.w { background: #f0fdf4; }
+  .sbs del { background: #fecaca; text-decoration: line-through; }
+  .sbs ins { background: #bbf7d0; text-decoration: none; }
+  .sbs tr.same td { color: #64748b; }
+  .sbs tr.fold td { text-align: center; color: #94a3b8; background: #f8fafc; cursor: pointer; }
+  .ln.add { background: #ecfdf5; } .ln.del { background: #fef2f2; text-decoration: line-through; color: #7f1d1d; }
+  .st-added { background: #dcfce7; color: #166534; } .st-removed { background: #fee2e2; color: #991b1b; } .st-modified { background: #fef9c3; color: #854d0e; }
+  .muted { color: var(--muted); } .err { color: var(--high); } .okc { color: var(--ok); }
+  .log { font-family: var(--mono); font-size: 12px; background: #0f172a; color: #cbd5e1; border-radius: 8px; padding: 8px; max-height: 220px; overflow: auto; }
+  .pass { color: var(--ok); font-weight: 600; } .fail { color: var(--high); font-weight: 600; }
+  .core li { margin: 4px 0; }
+  pre.report { white-space: pre-wrap; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; background: linear-gradient(180deg, var(--navy), #070a4a); color: #e6e9ff; border-radius: 12px; padding: 16px 18px; margin: 10px 0 0; max-height: 75vh; overflow: auto; box-shadow: inset 0 3px 0 -1px rgba(255,106,31,.9); }
+  details.card > summary { cursor: pointer; }
+  .verr { display: inline-flex; align-items: center; gap: 8px; color: #b42318; background: #fef3f2; border: 1px solid #fecdca; border-radius: 10px; padding: 7px 12px; font-weight: 500; animation: shake .3s ease; }
+  .verr::before { content: "!"; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #d92d20; color: #fff; font-size: 12px; font-weight: 800; flex: none; }
+  .verr a { color: #b42318; font-weight: 700; }
+  @keyframes shake { 0%, 100% { transform: none; } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ffe0cc; border-top-color: var(--ignite-orange); border-right-color: var(--ignite-magenta); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header>
+  <svg class="tracks" viewBox="0 0 420 150" fill="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="tA" x1="0" x2="1"><stop offset="0" stop-color="#4fe3e8"/><stop offset="1" stop-color="#3f63ff"/></linearGradient>
+      <linearGradient id="tB" x1="0" x2="1"><stop offset="0" stop-color="#d43fd1"/><stop offset="1" stop-color="#8b3dff"/></linearGradient>
+    </defs>
+    <path d="M300 -5 V40 Q300 70 330 70 H430" stroke="#ff6a1f" stroke-width="4" stroke-linecap="round"/>
+    <path d="M330 -5 V30 Q330 50 350 50 H430" stroke="url(#tB)" stroke-width="6" stroke-linecap="round" opacity=".9"/>
+    <path d="M150 160 V125 Q150 100 175 100 H430" stroke="url(#tA)" stroke-width="3" stroke-linecap="round" opacity=".85"/>
+    <path d="M165 160 V132 Q165 112 185 112 H430" stroke="#8fe9ff" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
+  </svg>
+  <img class="logo" src="/static/logo.png" alt="ESS" />
+  <div><h1><span class="glow">ESS Doctor</span></h1><div class="sub">See how instruction changes affect routing, search, tools, and answers — and fix them safely</div></div>
+</header>
+<div class="layout">
+  <nav id="nav"></nav>
+  <main>
+    <!-- 1. Agent -->
+    <section id="s-agent" class="active">
+      <h2>Agent check-up</h2>
+      <p class="lead">Load the live agent, an exported definition, or just paste the instructions. The Doctor checks them against the ESS template and known issues, explains each flaw, and fixes it.</p>
+      <div class="card">
+        <div class="row">
+          <button class="btn" onclick="loadLive()">Load from Copilot Studio</button>
+          <span class="muted">or</span>
+          <select id="sample"><option value="">Choose an exported agent…</option></select>
+          <button class="btn ghost" onclick="loadSample()">Load</button>
+          <span class="muted">or</span>
+          <input type="file" id="file" accept=".yml,.yaml,.txt" />
+          <span id="loadMsg" class="muted"></span>
+        </div>
+        <details style="margin-top:10px"><summary class="muted">Or paste the instructions</summary>
+          <textarea id="pasteInstr" placeholder="Paste the agent's instructions" style="margin-top:6px;min-height:120px"></textarea>
+          <div class="row" style="margin-top:6px"><button class="btn" onclick="loadPasted()">Check these instructions</button></div>
+        </details>
+        <details style="margin-top:10px"><summary class="muted">One-time setup: add the Copilot Studio bookmarks</summary>
+          <div class="muted" style="margin-top:6px">Drag <a id="bm" class="btn ghost" style="text-decoration:none;padding:3px 10px">Send to Doctor</a> and <a id="bm2" class="btn ghost" style="text-decoration:none;padding:3px 10px">Apply from Doctor</a> to your bookmarks bar (Ctrl+Shift+B shows it). On the agent's <b>Configure</b> page, <b>Send to Doctor</b> reads the instructions so <b>Load from Copilot Studio</b> gets your latest edits; <b>Apply from Doctor</b> pastes a fix into the editor for you to review and save.</div>
+        </details>
+      </div>
+      <div id="agentInfo"></div>
+      <div class="card row">
+        <span>Compare with:</span>
+        <select id="baselineSel"><option value="auto">ESS template (auto)</option><option value="hr">ESS HR template</option><option value="it">ESS IT template</option><option value="hub">ESS Hub template</option><option value="none">None</option></select>
+        <button class="btn" onclick="runValidate()">Check again</button>
+        <button class="btn ghost" onclick="showDiff('baseline')">What changed vs template</button>
+        <button class="btn ghost" onclick="showDiff('previous')">What changed vs previous</button>
+        <span id="valMsg" class="muted"></span> <span id="diffMsg" class="muted"></span>
+      </div>
+      <div id="diffOut"></div>
+      <div id="valSummary"></div>
+      <div class="split">
+        <div id="findings"></div>
+        <div style="position:sticky;top:12px"><div class="card" style="padding:8px 12px"><b>Instructions</b> <span class="muted">— click a finding to jump to its lines</span></div><div class="viewer" id="viewer"></div></div>
+      </div>
+      <details class="card" id="loadedCard" style="display:none"><summary><b>Loaded versions</b> <span class="muted">(pick current / previous)</span></summary>
+        <table id="loadedTbl"></table>
+      </details>
+    </section>
+
+    <!-- 2. Conversation -->
+    <section id="s-conv">
+      <h2>Conversation analyzer</h2>
+      <p class="lead">Paste a conversation ID. The Doctor reads the telemetry, shows which tools and searches ran, and writes a summary linking the result to the instruction lines that need to change.</p>
+      <div class="card">
+        <div class="row">
+          <input type="text" id="cid" placeholder="Conversation ID, or the DevUI link from /debug" style="width:420px" />
+          <select id="region"></select>
+          <select id="days"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option></select>
+          <button class="btn" onclick="explainConv()">Diagnose</button>
+          <button class="btn ghost" onclick="recentConvs()">Recent conversations</button>
+          <button class="btn ghost" onclick="loadTimeline()">Versions &amp; their conversations</button>
+          <span id="convMsg" class="muted"></span>
+        </div>
+        <input type="text" id="question" placeholder="Optional: the user's question (telemetry doesn't log prompt text)" style="width:100%;margin-top:8px" />
+        <textarea id="response" placeholder="Optional: paste the agent's response (lets the report list cited sources and check it against the instructions)" style="margin-top:8px;min-height:60px;font-family:inherit;font-size:13px"></textarea>
+      </div>
+      <div id="timeline"></div>
+      <div id="recent"></div>
+      <div id="convOut"></div>
+    </section>
+
+    <!-- 4. DevUI -->
+    <section id="s-devui">
+      <h2>Trace X-ray</h2>
+      <p class="lead">For declarative agents, the planner, search and answer run in M365 Copilot, not in Copilot Studio runtime logs. Paste the DevUI link from <code>/debug</code> or <b>Share</b> and click <b>Analyze</b>: it opens in your browser with your Microsoft sign-in. On that tab, click your <b>Send DevUI to Doctor</b> bookmark and the report appears here. Or download the file in DevUI and upload it.</p>
+      <div class="card">
+        <div class="row">
+          <input type="text" id="devuiUrl" placeholder="https://aka.ms/copilotdevui?sharedSessionId=…" style="flex:1;min-width:420px" onkeydown="if(event.key==='Enter')devuiFromUrl()" />
+          <button class="btn" onclick="devuiFromUrl()">Analyze</button>
+        </div>
+        <div class="row" style="margin-top:8px"><span class="muted">or upload the export:</span>
+          <input type="file" id="devuiFile" accept=".json" />
+          <select id="devuiTurn" style="display:none" onchange="devuiTurn()"></select>
+        </div>
+        <details style="margin-top:10px"><summary class="muted">One-time setup: add the DevUI bookmark</summary>
+          <div class="muted" style="margin-top:6px">Drag <a id="bm3" class="btn ghost" style="text-decoration:none;padding:3px 10px">Send DevUI to Doctor</a> to your bookmarks bar (Ctrl+Shift+B shows it). On a DevUI conversation, click it: it runs DevUI's own <b>Download</b> in the page and sends the export to the Doctor instead of saving a file.</div>
+        </details>
+        <div id="devuiMsg" class="muted" style="margin-top:6px"></div>
+      </div>
+      <div id="devuiOut"></div>
+    </section>
+
+    <!-- Hidden: kept for the APIs they call; not in the navigation -->
+    <section id="s-evidence">
+      <h2>Lab results</h2>
+      <p class="lead">Signals the customer can export themselves: Purview audit (agent version per interaction) and the developer-mode diagnostic log from M365 Copilot (<code>-developer on</code>).</p>
+      <div class="card">
+        <b>Purview audit export (CSV)</b>
+        <div class="row" style="margin-top:8px"><input type="file" id="purviewFile" accept=".csv" /><input type="text" id="purviewAgent" placeholder="Filter by agent name/ID (optional)" /><button class="btn" onclick="parsePurview()">Analyze</button></div>
+        <div id="purviewOut"></div>
+      </div>
+      <div class="card">
+        <b>Developer-mode diagnostic log</b>
+        <textarea id="devlog" placeholder="Paste the diagnostic log text here"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn" onclick="parseDev()">Analyze</button></div>
+        <div id="devOut"></div>
+      </div>
+    </section>
+
+    <!-- 6. Prove -->
+    <section id="s-prove">
+      <h2>Second opinion</h2>
+      <p class="lead">Publishes the previous version, the current version, and the current version with one change reverted at a time to a <b>test agent</b>, replays prompts, and attributes each regression to a specific change.</p>
+      <div class="card">
+        <div class="row"><span>Previous:</span><select id="prevSel"></select><span>Current:</span><select id="curSel"></select><button class="btn ghost" onclick="planCf()">Plan variants</button></div>
+        <div id="cfPlan"></div>
+        <label class="f">Prompts (one per line; prefix with <code>offer:</code> to require an action offer, <code>refuse:</code> to require a refusal)</label>
+        <textarea id="cfPrompts"></textarea>
+        <div class="row" style="margin-top:8px">
+          <label><input type="checkbox" id="cfConfirm" /> This is a TEST agent — OK to publish variants</label>
+          <span>Repeats</span><select id="cfRepeats"><option>1</option><option selected>2</option><option>3</option></select>
+          <button class="btn" onclick="runCf()">Run</button>
+          <button class="btn ghost" onclick="loadRuns()">Past runs</button>
+        </div>
+        <div class="log" id="cfLog" style="display:none"></div>
+      </div>
+      <div id="cfOut"></div>
+    </section>
+
+    <!-- 3. Tune -->
+    <section id="s-draft">
+      <h2>Tune for your employees</h2>
+      <p class="lead">Describe what you need, or upload your eval set. The Doctor drafts the instruction change, places it where it won't break routing or knowledge search, re-checks it, and gives you an eval set to verify quality didn't drop.</p>
+      <div class="card">
+        <label class="f">Describe the scenario or change you need</label>
+        <textarea id="intent" placeholder="e.g. Don't answer relocation package questions; send people to the People team. Questions about expenses and visas should still be answered from the KB." style="min-height:70px"></textarea>
+        <div class="row" style="margin-top:8px"><b>Your evals</b> <input type="file" id="evalFile" accept=".csv" /> <span class="muted">Copilot Studio eval CSV (<code>Question</code>, <code>Expected response</code>), or the results CSV from an evaluation run to see why each question failed</span> <span id="evalMsg" class="muted"></span></div>
+        <div class="row" style="margin-top:8px"><b>Before vs after</b>
+          <label class="muted">Results before the fix <input type="file" id="cmpBefore" accept=".csv" /></label>
+          <label class="muted">Results after the fix <input type="file" id="cmpAfter" accept=".csv" /></label>
+          <button class="btn ghost" onclick="runCompare()">Compare</button> <span id="cmpMsg"></span></div>
+        <details style="margin-top:8px"><summary class="muted">More detail (optional)</summary>
+        <div class="row" style="margin-top:6px"><span>Change type</span><select id="ctype" onchange="state.ctypeTouched=true;renderSlots()"></select></div>
+        <div id="slots"></div>
+        <div class="split" style="grid-template-columns:1fr 1fr">
+          <div><label class="f">Queries that SHOULD change (one per line)</label><textarea id="should"></textarea></div>
+          <div><label class="f">Queries that must NOT change (one per line)</label><textarea id="mustnot"></textarea></div>
+        </div>
+        <label class="f">Content sample (KB excerpt, glossary, policy text)</label>
+        <textarea id="content"></textarea>
+        </details>
+        <div class="row" style="margin-top:8px"><label id="useLlmWrap" style="display:none"><input type="checkbox" id="useLlm" checked /> Polish with Azure OpenAI</label><button class="btn" onclick="runDraft()">Draft the change</button><span id="draftMsg" class="muted"></span></div>
+      </div>
+      <div id="triageOut"></div>
+      <div id="draftOut"></div>
+      <details class="card" id="practicesCard" ontoggle="if(this.open)loadPractices()"><summary><b>Authoring best practices</b> <span class="muted">— what every drafted rule follows, from the ESS templates and the customer agents reviewed (three anonymized enterprise deployments)</span></summary><div id="practicesOut" style="margin-top:8px"></div></details>
+    </section>
+  </main>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const STEPS = [["agent","Agent check-up","Check your ESS agent against the template and fix issues"],["conv","Conversation analyzer","Why did an employee get a poor answer?"],["draft","Tune for your employees","Fit ESS to your HR policies, verify with evals"],["devui","Trace X-ray","Step through how an ESS answer was built"]];
+const state = { agents: [], currentId: null, previousId: null, lastFindings: [], status: null };
+
+function nav(id) {
+  document.querySelectorAll("section").forEach((s) => s.classList.toggle("active", s.id === "s-" + id));
+  document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("active", b.dataset.id === id));
+  const step = STEPS.find(([k]) => k === id);
+  document.title = step ? `ESS Doctor · ${step[1]}` : "ESS Doctor";
+}
+document.querySelectorAll("section h2").forEach((h) => h.insertAdjacentHTML("afterbegin", '<img class="logo" src="/static/logo.png" alt="" />'));
+document.title = `ESS Doctor · ${STEPS[0][1]}`;
+$("nav").innerHTML = STEPS.map(([id, t, sub], i) => `<button data-id="${id}" class="${i ? "" : "active"}" onclick="nav('${id}')"><span class="lbl">${t}</span><span class="hint">${sub}</span></button>`).join("");
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.detail || r.statusText);
+  return j;
+}
+const post = (p, b) => api(p, { method: "POST", body: JSON.stringify(b) });
+
+async function init() {
+  const s = await api("/api/doctor/status"); state.status = s;
+  if (s.azure_openai) $("useLlmWrap").style.display = "";
+  const sm = await api("/api/doctor/samples");
+  $("sample").innerHTML += sm.samples.map((n) => `<option>${esc(n)}</option>`).join("");
+  $("region").innerHTML = ["US","EU-WEU","EU-UK","EU-FR","EU-DE","EU-NO","EU-CH","ROW-AU","ROW-IN","ROW-JP","ROW-SG","ROW-BR","ROW-ZA"].map((r) => `<option ${r === s.kusto.region ? "selected" : ""}>${r}</option>`).join("");
+  $("ctype").innerHTML = Object.entries(s.change_types).sort((a, b) => a[1].localeCompare(b[1])).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+  $("ctype").value = "terminology";
+  renderSlots();
+}
+
+function addAgent(res, label) {
+  state.agents.push({ id: res.agent_id, label, summary: res.summary, lines: res.lines, blocks: res.blocks, persona: res.persona, live: res.live });
+  if (state.currentId) state.previousId = state.currentId;
+  state.currentId = res.agent_id;
+  renderAgents();
+  if (!res.draft) { nav("agent"); runValidate(); }
+}
+
+function renderAgents() {
+  const cur = state.agents.find((a) => a.id === state.currentId);
+  if (state.currentId) document.querySelectorAll(".verr").forEach((e) => e.remove());
+  if (cur) {
+    const s = cur.summary, pct = Math.min(100, Math.round((s.char_count / 8000) * 100));
+    const color = s.char_count > 8000 ? "var(--high)" : s.char_count > 7200 ? "var(--med)" : "var(--ok)";
+    $("agentInfo").innerHTML = `<div class="grid">
+      <div class="stat"><div class="k">Agent</div><div class="v" style="font-size:15px">${esc(cur.label)}</div><div class="muted mono">${esc(s.bot_schema)}</div></div>
+      <div class="stat"><div class="k">Instruction length</div><div class="v">${s.char_count.toLocaleString()} <span class="muted" style="font-size:12px">/ 8,000</span></div><div class="bar"><i style="width:${pct}%;background:${color}"></i></div></div>
+      <div class="stat"><div class="k">Content moderation</div><div class="v">${esc(s.content_moderation || "—")}</div>${!s.content_moderation && (s.source || "").startsWith("copilotstudio:") ? '<div class="muted">Set under Settings › Generative AI (not on the Configure page)</div>' : ""}</div>
+      <div class="stat"><div class="k">Topics / knowledge sources</div><div class="v">${(s.source || "").startsWith("copilotstudio:") ? (s.topics_total != null ? s.topics_total : "—") : s.topics} / ${s.knowledge_sources}</div>${(s.source || "").startsWith("copilotstudio:") ? (s.topics_total != null ? `<div class="muted">${s.topics_custom} custom · ${s.topics_system} system</div>` : '<div class="muted">Topic count: click Send to Doctor on the Topics tab</div>') : ""}</div>
+      <div class="stat"><div class="k">Template</div><div class="v" style="font-size:15px">${esc(s.template || "—")}</div><div class="muted">${s.is_full_export ? "Full export" : "Instructions only"}</div></div>
+      <div class="stat"><div class="k">Fingerprint</div><div class="v mono" style="font-size:14px">${esc(s.fingerprint)}</div><div class="muted">${esc(s.modified_utc || "")}</div></div>
+    </div>${Object.keys(s.capabilities || {}).length ? `<div class="card" style="margin-top:12px"><div class="kv">
+      <b>Capabilities</b><div>${Object.entries(s.capabilities).filter(([k]) => k && k !== "Activity").map(([k, v]) => `<span class="chip" style="${v ? "background:#dcfce7;color:#166534" : ""}">${v ? "On" : "Off"} · ${esc(k.replace(/\. This setting.*$/, "").replace(/\.$/, ""))}</span>`).join(" ")}</div>
+    </div></div>` : ""}${cur.live ? `<div class="card" style="margin-top:12px"><b>Live agent</b> · published ${esc(cur.live.published_on || "?")} · ${cur.live.snapshot.new ? "<span class='okc'>new version captured</span>" : "no change since last load"} · ${cur.live.snapshots.length} snapshot(s)
+      <div class="row" style="margin-top:6px">${cur.live.snapshots.map((x) => `<button class="btn ghost" onclick="loadSnap('${cur.id}','${x.id}')">Load ${esc(x.captured)}</button>`).join("")}${cur.live.component_id ? `<button class="btn ghost" onclick="liveHistory('${cur.id}')">Dataverse change history</button>` : ""}</div><div id="hist"></div></div>` : ""}`;
+  }
+  $("loadedCard").style.display = state.agents.length ? "" : "none";
+  $("loadedTbl").innerHTML = "<tr><th>Version</th><th>Chars</th><th>Fingerprint</th><th></th></tr>" + state.agents.map((a) => `<tr><td>${esc(a.label)}</td><td>${a.summary.char_count.toLocaleString()}</td><td class="mono">${a.summary.fingerprint}</td>
+    <td><button class="btn ${a.id === state.currentId ? "" : "ghost"}" onclick="setCur('${a.id}')">current</button> <button class="btn ${a.id === state.previousId ? "" : "ghost"}" onclick="setPrev('${a.id}')">previous</button></td></tr>`).join("");
+  const opts = state.agents.map((a) => `<option value="${a.id}">${esc(a.label)}</option>`).join("");
+  $("prevSel").innerHTML = opts; $("curSel").innerHTML = opts;
+  if (state.previousId) $("prevSel").value = state.previousId;
+  if (state.currentId) $("curSel").value = state.currentId;
+  renderViewer([]);
+}
+function setCur(id) { state.currentId = id; renderAgents(); }
+function setPrev(id) { state.previousId = id; renderAgents(); }
+
+async function loadSample() {
+  const n = $("sample").value; if (!n) return;
+  $("loadMsg").innerHTML = '<span class="spinner"></span>';
+  try { addAgent(await post("/api/doctor/load", { sample: n }), n.replace(/\.ya?ml$/, "")); $("loadMsg").textContent = ""; }
+  catch (e) { $("loadMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+$("file").addEventListener("change", async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  const text = await f.text();
+  try { addAgent(await post("/api/doctor/load", { text, name: f.name }), f.name); }
+  catch (e) { $("loadMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+});
+async function loadLive() {
+  $("loadMsg").innerHTML = '<span class="spinner"></span> Reading the agent from Copilot Studio…';
+  try {
+    const r = await post("/api/doctor/live/load", {}); addAgent(r, `${r.summary.name} (live ${r.live.published_on})`);
+    const ts = String(r.live.published_on || "").replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/, "$1-$2-$3T$4:$5:$6Z");
+    const when = new Date(ts), mins = isNaN(when) ? null : Math.round((Date.now() - when) / 60000);
+    const ago = mins == null ? "" : mins < 2 ? "just now" : mins < 120 ? mins + " min ago" : when.toLocaleString();
+    if (r.live.source === "copilotstudio-api") {
+      $("loadMsg").innerHTML = `<span class="okc">✓ Loaded directly from Copilot Studio</span> — last saved ${ago}. Unsaved edits in the editor aren't included; save first.`;
+    } else {
+      $("loadMsg").innerHTML = (r.direct_error ? `<span class="err">Couldn't read Copilot Studio directly: ${esc(r.direct_error)}</span><br>` : "") +
+        `Showing the version captured ${ago || "earlier"}. <b>Edited since then?</b> On the agent's Configure page, click the <b>Send to Doctor</b> bookmark, then click Load again.`;
+    }
+  }
+  catch (e) { $("loadMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+async function loadPasted() {
+  const text = $("pasteInstr").value.trim(); if (!text) return;
+  $("loadMsg").innerHTML = '<span class="spinner"></span>';
+  try { addAgent(await post("/api/doctor/load", { text, name: "Pasted instructions", instructions_only: true }), "Pasted instructions"); $("loadMsg").textContent = ""; }
+  catch (e) { $("loadMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+function parseCsv(text) {
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter((r) => r.some((x) => x.trim()));
+}
+$("evalFile").addEventListener("change", async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  const rows = parseCsv((await f.text()).replace(/^\uFEFF/, ""));
+  const head = (rows.shift() || []).map((h) => h.trim().toLowerCase());
+  const qi = head.findIndex((h) => /question|prompt|utterance/.test(h)), ei = head.findIndex((h) => /expected/.test(h));
+  if (qi < 0) return ($("evalMsg").innerHTML = '<span class="err">No "Question" column found.</span>');
+  state.evals = rows.map((r) => ({ prompt: (r[qi] || "").trim(), expect: ei >= 0 ? (r[ei] || "").trim() : "" })).filter((r) => r.prompt);
+  $("evalMsg").textContent = `${state.evals.length} eval question(s) loaded. Questions about the subject you describe are tested for the change; the rest must keep working as before.`;
+  $("triageOut").innerHTML = "";
+  if (!head.some((h) => /^result/.test(h))) return;
+  if (!state.currentId) return needAgent("triageOut", "to see why each question failed");
+  $("triageOut").innerHTML = '<div class="card"><span class="spinner"></span> Working out why each question failed…</div>';
+  try {
+    state.triage = await post("/api/doctor/evals/triage", { agent_id: state.currentId, csv: (await f.text()).replace(/^\uFEFF/, "") });
+    renderTriage(state.triage);
+  } catch (e) { $("triageOut").innerHTML = `<div class="card err">${esc(e.message)}</div>`; }
+});
+const CAUSE_STYLE = { instruction: "#b45309", scenario_off: "#7c3aed", scenario_missing: "#be123c", content_gap: "#0369a1", review: "#475569" };
+function needAgent(id, why = "") {
+  $(id).innerHTML = `<span class="verr">Load an agent first${why ? " " + esc(why) : ""} — <a href="#" onclick="nav('agent');return false">go to Agent check-up</a></span>`;
+}
+function renderTriage(r) {
+  const chip = (k, label) => `<span class="chip" style="background:${CAUSE_STYLE[k]}1a;color:${CAUSE_STYLE[k]};border-color:${CAUSE_STYLE[k]}55">${esc(label)}</span>`;
+  const LABEL = { instruction: "Instruction issue", scenario_off: "Scenario turned off", scenario_missing: "Scenario doesn't exist", content_gap: "Content doesn't exist", review: "Needs review" };
+  const counts = Object.entries(r.counts).filter(([, v]) => v).map(([k, v]) => `${chip(k, LABEL[k])} ${v}`).join(" &nbsp; ");
+  $("triageOut").innerHTML = `<div class="card" style="border:2px solid var(--brand)">
+      <div class="row"><b style="font-size:16px">Why questions failed</b><span class="muted">${r.passed} of ${r.total} passed · ${r.failed} failed</span><span style="margin-left:auto"></span>
+        <button class="btn" onclick="copyText(state.triage.summary, this)">Copy for the maker</button>
+        <button class="btn ghost" onclick="downloadText(state.triage.summary, 'ess_doctor_eval_triage.txt')">Download</button></div>
+      ${r.failed ? `<div style="margin-top:8px">${counts}</div>` : '<div class="okc" style="margin-top:8px">Every question passed.</div>'}
+    </div>
+    ${r.items.map((t) => `<div class="card">
+      <div class="row">${chip(t.cause, t.cause_label)}<b>“${esc(t.question)}”</b><span style="margin-left:auto" class="muted">Owner: ${esc(t.owner)}</span></div>
+      <div style="margin-top:6px">${esc(t.headline)}</div>
+      ${t.evidence.map((e) => `<div class="muted" style="margin-top:2px">• ${esc(e)}</div>`).join("")}
+      ${t.secondary ? `<div class="history" style="margin-top:6px">${esc(t.secondary)}</div>` : ""}
+      ${t.lines.map((l) => `<div class="quote" style="margin-top:6px">Line ${l.line}: ${esc(l.text)}</div>`).join("")}
+      <div class="fix" style="margin-top:6px"><b>Fix:</b> ${esc(t.fix)}</div>
+      ${t.conversation_id ? `<div class="muted" style="margin-top:6px">Conversation <span class="mono">${esc(t.conversation_id)}</span> · <a href="#" onclick="$('cid').value='${esc(t.conversation_id)}';nav('conv');explainConv();return false">Analyze this conversation</a></div>` : ""}
+    </div>`).join("")}`;
+}
+async function runCompare() {
+  const fb = $("cmpBefore").files[0], fa = $("cmpAfter").files[0];
+  if (!fb || !fa) return ($("cmpMsg").innerHTML = '<span class="verr">Choose both results files</span>');
+  $("cmpMsg").innerHTML = '<span class="spinner"></span>';
+  try {
+    const clean = async (f) => (await f.text()).replace(/^\uFEFF/, "");
+    state.compare = await post("/api/doctor/evals/compare", { before_csv: await clean(fb), after_csv: await clean(fa) });
+    $("cmpMsg").textContent = "";
+    renderCompare(state.compare);
+  } catch (e) { $("cmpMsg").innerHTML = `<span class="verr">${esc(e.message)}</span>`; }
+}
+function renderCompare(r) {
+  const pct = (n) => r.total ? Math.round((n / r.total) * 100) : 0;
+  const mark = (v) => v.pass === true ? '<span class="pass">✓ Pass</span>' : v.pass === false ? '<span class="fail">✗ Fail</span>' : '<span class="muted">—</span>';
+  const tone = { "Fixed": "#0f9d6b", "Regressed": "#d92d4a", "Still failing": "#e08a00", "Still passing": "#5b6080", "Not comparable": "#94a3b8" };
+  const c = r.counts;
+  $("triageOut").innerHTML = `<div class="card" style="border:2px solid var(--brand)">
+      <div class="row"><b style="font-size:16px">Before vs after the fix</b><span class="muted">same ${r.total} prompts, graded against the expected behaviour</span></div>
+      <div class="row" style="margin-top:12px;gap:28px;align-items:flex-end">
+        <div><div class="muted">Before</div><div style="font:800 34px var(--display);color:var(--high)">${r.before_pass}/${r.total}</div><div class="muted">${pct(r.before_pass)}% pass</div></div>
+        <div style="font-size:28px;color:var(--muted)">→</div>
+        <div><div class="muted">After</div><div style="font:800 34px var(--display);color:var(--ok)">${r.after_pass}/${r.total}</div><div class="muted">${pct(r.after_pass)}% pass</div></div>
+        <div style="margin-left:auto" class="row">${["Fixed", "Regressed", "Still failing", "Still passing"].filter((k) => c[k]).map((k) => `<span class="chip" style="background:${tone[k]}1a;color:${tone[k]}">${k} ${c[k]}</span>`).join(" ")}</div>
+      </div>
+      <div class="muted" style="margin-top:8px">Declines count as a pass when the expected response says the agent should decline. The Copilot Studio answer-quality grader marks every decline as "not answered".</div>
+    </div>
+    <div class="card"><table><tr><th>Prompt</th><th>Before</th><th>After</th><th>Result</th></tr>
+      ${r.rows.map((x) => `<tr><td><b>${esc(x.question)}</b><div class="muted">Expected: ${esc(x.expected)}</div></td>
+        <td>${mark(x.before)}<div class="muted">${esc(x.before.why)}</div></td>
+        <td>${mark(x.after)}<div class="muted">${esc(x.after.why)}</div></td>
+        <td><span class="chip" style="background:${tone[x.status]}1a;color:${tone[x.status]};font-weight:700">${x.status}</span></td></tr>`).join("")}
+    </table></div>`;
+}
+function downloadText(text, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+  a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function evalRows(tests) {
+  const own = state.evals || [], seen = new Set(own.map((r) => r.prompt.toLowerCase()));
+  return [...own, ...tests.filter((t) => !seen.has(t.prompt.toLowerCase())).map((t) => ({ prompt: t.prompt, expect: t.expect }))];
+}
+const BOOKMARKLET = `(()=>{const tabs=[...document.querySelectorAll('button,[role=tab],[role=radio]')].map(b=>b.textContent.trim());const cu=tabs.find(t=>/\\bCustom \\(\\d+\\)/.test(t)),sy=tabs.find(t=>/\\bSystem \\(\\d+\\)/.test(t));if(cu){const n=s=>s?+s.match(/\\((\\d+)\\)/)[1]:0;fetch('${location.origin}/api/doctor/push-topics',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:location.href,custom:n(cu),system:n(sy)})}).then(r=>r.json()).then(j=>alert(j.ok?'Sent to Doctor: '+(n(cu)+n(sy))+' topics ('+n(cu)+' custom, '+n(sy)+' system)':'Doctor: '+(j.detail||'error'))).catch(e=>alert('Doctor not reachable: '+e));return}const h=[...document.querySelectorAll('*')].find(e=>e.childElementCount===0&&e.textContent.trim()==='Instructions');if(!h){alert('Open the agent Configure page (or the Topics tab) in Copilot Studio first.');return}`
+  + `let c=h;for(let i=0;i<6&&c;i++){c=c.parentElement;if((c.innerText||'').length>200)break}const L=c.innerText.split('\\n');while(L.length&&/^(Instructions|Edit|)$/.test(L[0].trim()))L.shift();const n=document.title.split('|')[0].replace(/^Configure - /,'').trim();const G=t=>{const x=[...document.querySelectorAll('h2')].find(e=>e.textContent.trim()===t);return x?(x.closest('[role=group]')||x.parentElement.parentElement.parentElement):null};const K=G('Knowledge');const cfg={knowledge:K?[...K.querySelectorAll('a[href]')].filter(a=>!/learn more/i.test(a.textContent)).map(a=>({name:a.textContent.trim(),url:a.href})):[],switches:Object.fromEntries([...document.querySelectorAll('[role=switch]')].map(s=>[s.getAttribute('aria-label')||'',s.getAttribute('aria-checked')==='true'||!!s.checked]))};fetch('${location.origin}/api/doctor/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:L.join('\\n'),url:location.href,name:n,config:cfg})}).then(r=>r.json()).then(j=>alert(j.ok?'Sent to Doctor: '+j.chars+' chars, '+cfg.knowledge.length+' knowledge source(s) ('+(j.new_version?'new version':'no change')+', '+j.versions+' saved). For the topic count, click this again on the Topics tab.':'Doctor: '+(j.detail||'error'))).catch(e=>alert('Doctor not reachable: '+e))})()`;
+$("bm").href = "javascript:" + encodeURIComponent(BOOKMARKLET);
+$("bm").addEventListener("click", (e) => { e.preventDefault(); alert("Drag this button to your bookmarks bar, then click it on the Copilot Studio agent page."); });
+const APPLY = `(async()=>{const O='${location.origin}';let p;try{const r=await fetch(O+'/api/doctor/pending');if(!r.ok){alert('Doctor: nothing staged. Click Send to Copilot Studio in the Doctor first.');return}p=await r.json()}catch(e){alert('Doctor not reachable: '+e);return}const sel='[role=textbox][aria-label^="Describe what you want this agent"]';const W=ms=>new Promise(r=>setTimeout(r,ms));let ed=document.querySelector(sel);if(!ed){alert('Open the agent Configure page in Copilot Studio first.');return}if(ed.getAttribute('contenteditable')!=='true'){const b=document.querySelector('button[aria-label="Edit Instructions"]');if(b)b.click();for(let i=0;i<30&&ed.getAttribute('contenteditable')!=='true';i++){await W(150);ed=document.querySelector(sel)}}ed.focus();await W(150);ed.dispatchEvent(new KeyboardEvent('keydown',{key:'a',code:'KeyA',keyCode:65,ctrlKey:true,metaKey:navigator.platform.startsWith('Mac'),bubbles:true,cancelable:true}));await W(250);const dt=new DataTransfer();dt.setData('text/plain',p.text);ed.dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}));await W(900);const N=s=>s.replace(/\\s+/g,' ').trim();const ok=N(ed.innerText)===N(p.text);if(ok){alert('Doctor fix applied in the editor ('+p.text.length+' characters). Review it, then click Save. Click Cancel to discard.')}else{try{await navigator.clipboard.writeText(p.text)}catch(e){}alert('The editor did not take the full fix cleanly. Click Cancel, then Discard. The fixed instructions are on your clipboard: click Edit, select all, and paste.')}})()`;
+$("bm2").href = "javascript:" + encodeURIComponent(APPLY);
+$("bm2").addEventListener("click", (e) => { e.preventDefault(); alert("Drag this button to your bookmarks bar, then click it on the Copilot Studio agent page after 'Send to Copilot Studio'."); });
+async function loadSnap(aid, sid) {
+  const r = await post(`/api/doctor/live/snapshot/${aid}/${sid}`, {});
+  const keep = state.currentId; addAgent(r, `snapshot ${sid.split("_")[0]}`); state.previousId = r.agent_id; state.currentId = keep; renderAgents();
+}
+async function liveHistory(aid) {
+  const h = await api(`/api/doctor/live/history/${aid}`);
+  $("hist").innerHTML = h.ok ? `<table><tr><th>When</th><th>Who</th><th>Instruction change</th></tr>${h.entries.map((e) => `<tr><td>${esc(e.when)}</td><td>${esc(e.user)}</td><td>${e.has_instruction_change ? "yes" : ""}</td></tr>`).join("")}</table>` : `<p class="muted">${esc(h.error)}</p>`;
+}
+
+function renderViewer(findings, linesOverride) {
+  const cur = state.agents.find((a) => a.id === state.currentId); if (!cur && !linesOverride) return;
+  const lines = linesOverride || (state.workingId && state.lastFix ? state.lastFix.fixed_lines : null) || cur.lines;
+  const sevAt = {};
+  for (const f of findings) for (const l of f.lines.length === 2 && f.lines[1] - f.lines[0] > 3 ? [] : f.lines) if (!sevAt[l]) sevAt[l] = f.severity;
+  $("viewer").innerHTML = lines.map((l) => `<div id="L${l.no}" class="${sevAt[l.no] ? "hl-" + sevAt[l.no] : ""}"><span class="no">${l.no}</span><span class="${/^\s*#/.test(l.text) ? "h" : ""}">${esc(l.text) || "&nbsp;"}</span></div>`).join("");
+}
+function jump(no) { const el = $("L" + no); if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); el.style.outline = "2px solid #fff"; setTimeout(() => (el.style.outline = ""), 1500); } }
+
+function whereText(f) {
+  const cur = state.agents.find((a) => a.id === state.currentId);
+  const src = cur ? cur.label : "instructions";
+  const lines = f.lines.length ? (f.lines.length > 4 ? `lines ${f.lines[0]}–${f.lines[f.lines.length - 1]}` : `line${f.lines.length > 1 ? "s" : ""} ${f.lines.join(", ")}`) : "agent configuration";
+  const tpl = (f.title.match(/\(template '([^']+)', lines ([\d–]+)\)/) || []);
+  return `${src}, ${lines}${tpl.length ? `. Template equivalent: '${tpl[1]}', lines ${tpl[2]}` : ""}${f.origin === "template" ? " (inherited from ESS template)" : ""}`;
+}
+function issueTitle(f) { return f.title.replace(/\s*\(template '[^']+', lines [\d–]+\)/, ""); }
+const PIPE_ORDER = ["1 Planner / tool selection", "2 Search / tool execution", "3 Synthesis", "4 Render", "All stages"];
+const PIPE_HINT = { "1 Planner / tool selection": "How to choose tools — instructions, tool descriptions, topic triggers", "2 Search / tool execution": "How to shape the search query — enrichment, content and access", "3 Synthesis": "How to answer — answering steps, guardrails, citations, fallbacks", "4 Render": "What the surface can show", "All stages": "Platform limits that affect every stage" };
+const byPipe = (fs) => [...fs].sort((a, b) => PIPE_ORDER.indexOf(a.pipeline) - PIPE_ORDER.indexOf(b.pipeline));
+function setView(v) {
+  state.view = v;
+  const fs = byPipe(state.lastFindings || []);
+  if (!fs.length) { $("fview").innerHTML = '<div class="card okc">No findings.</div>'; return; }
+  if (v === "cards") {
+    $("fview").innerHTML = PIPE_ORDER.map((p) => { const g = fs.filter((f) => f.pipeline === p); return g.length ? `<div class="pipehd"><b>${esc(p)}</b> <span>${g.length} issue${g.length === 1 ? "" : "s"}</span><div>${esc(PIPE_HINT[p])}</div></div>` + g.map(findingCard).join("") : ""; }).join("");
+    return;
+  }
+  $("fview").innerHTML = `<div class="card" style="padding:0;overflow:auto"><table class="rtable"><tr><th>Stage</th><th>Issue</th><th>Users see</th><th>Where</th><th>Current text</th><th>Impact</th><th>Fix</th></tr>${fs.map((f) => `<tr onclick="jump(${f.lines[0] || 0})" style="cursor:pointer">
+    <td class="muted">${esc(f.pipeline)}</td>
+    <td><span class="sev ${f.severity}">${f.severity}</span><div style="margin-top:4px"><b>${esc(issueTitle(f))}</b></div></td>
+    <td><span class="chip sees">${esc(f.user_sees)}</span></td>
+    <td>${esc(whereText(f))}</td>
+    <td><div class="quote">${esc(f.current)}</div></td>
+    <td>${esc(f.impact)}${f.test_prompts.length ? `<div class="muted" style="margin-top:6px">Test: ${f.test_prompts.map(esc).join(" · ")}</div>` : ""}</td>
+    <td><div class="fix">${esc(f.fix)}</div>${(f.origin === "maker" || f.origin === "practice") && f.auto_fixable ? `<button class="btn" style="margin-top:6px;padding:2px 10px" onclick="event.stopPropagation();runFix(['${esc(f.rule_id)}'])">${f.origin === "practice" ? "Add it" : "Fix it"}</button>` : ""}</td></tr>`).join("")}</table></div>`;
+}
+function copyMd() {
+  const cell = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n+/g, " ");
+  const fs = byPipe(state.lastFindings || []);
+  const cur = state.agents.find((a) => a.id === state.currentId);
+  const md = [`## ${cur ? cur.label : "Agent"} — instruction review`, "", "| Stage | Issue | Users see | Where | Current text | Impact | Fix |", "| --- | --- | --- | --- | --- | --- | --- |",
+    ...fs.map((f) => `| ${cell(f.pipeline)} | **${cell(issueTitle(f))}** (${f.severity}) | ${cell(f.user_sees)} | ${cell(whereText(f))} | \`${cell(f.current).replace(/`/g, "'")}\` | ${cell(f.impact)} | ${cell(f.fix)} |`)].join("\n");
+  navigator.clipboard.writeText(md).then(() => ($("copyMsg").textContent = "Copied")).catch(() => ($("copyMsg").textContent = "Copy failed"));
+}
+
+async function runFix(ruleIds) {
+  if (!state.currentId) return;
+  if (!$("fixOut")) { nav("agent"); await runValidate(); }
+  nav("agent");
+  const base = state.workingId || state.currentId;
+  $("fixOut").innerHTML = '<div class="card"><span class="spinner"></span> Applying fixes and re-validating…</div>';
+  let r;
+  try { r = await post("/api/doctor/fix", { agent_id: base, rule_ids: ruleIds }); }
+  catch (e) { return ($("fixOut").innerHTML = `<div class="card err">${esc(e.message)}</div>`); }
+  // Accumulate: the fixed draft becomes the base for the next fix.
+  state.resolved = [...(state.resolved || []), ...r.applied];
+  state.origChars = state.origChars || r.chars.before;
+  state.origCount = state.origCount ?? r.counts.before;
+  state.origText = state.origText ?? r.old_instructions;
+  state.workingId = r.fixed_agent_id;
+  r.new_instructions = r.new_instructions;
+  state.lastFix = r;
+  const template = (state.lastValidate?.findings || []).filter((f) => f.origin === "template");
+  state.lastFindings = [...r.remaining, ...template];
+  renderViewer(state.lastFindings, r.fixed_lines);
+  setView(state.view || "cards");
+  const over = r.chars.after > r.chars.limit;
+  $("fixOut").innerHTML = `<div class="card" style="border:2px solid var(--brand)">
+    <div class="row"><b style="font-size:16px">Working draft</b>
+      <span class="chip">${state.origCount} → ${r.counts.after} maker findings</span>
+      <span class="chip ${over ? "fail" : ""}">${state.origChars.toLocaleString()} → ${r.chars.after.toLocaleString()} / ${r.chars.limit.toLocaleString()} chars</span>
+      <span style="margin-left:auto"></span>
+      <button class="btn" onclick="sendToStudio()">Send to Copilot Studio</button>
+      <button class="btn ghost" onclick="copyText(state.lastFix.new_instructions, this)">Copy instructions</button>
+      <button class="btn ghost" onclick="downloadEvalSet([...new Set(state.resolved.flatMap((a) => a.tests || []))].map((p) => ({ prompt: p, expect: 'answer' })).concat(state.lastFix.tests.map((p) => ({ prompt: p, expect: 'answer' }))))">Download eval set (CSV)</button>
+      <button class="btn ghost" onclick="startOver()">Start over</button></div>
+    <div id="sendMsg" class="muted" style="margin-top:6px"></div>
+    ${state.resolved.length ? `<details style="margin-top:10px" open><summary><b>Resolved (${state.resolved.length})</b></summary>${state.resolved.map((a) => `<div class="history" style="background:#ecfdf5;border-color:#a7f3d0;color:#065f46">✓ ${esc(a.change)} <span class="muted">(${esc(a.rule_id)})</span></div>`).join("")}</details>` : ""}
+    ${r.manual.length ? `<div style="margin-top:10px"><b>Needs your decision</b>${r.manual.map((m) => `<div class="history">• ${esc(m.title.replace(/\s*\(template[^)]*\)/, ""))}: ${esc(m.change)}</div>`).join("")}</div>` : ""}
+    <div style="margin-top:10px"><div class="row"><b>Current vs working draft</b><span class="muted">— all fixes so far</span><span style="margin-left:auto"></span><button class="btn" onclick="copyText(state.lastFix.new_instructions, this)">Copy instructions</button></div>${sideBySide(state.origText || "", r.new_instructions, { title: "Working draft" })}</div>
+  </div>`;
+}
+function startOver() {
+  state.workingId = null; state.resolved = []; state.origChars = null; state.origCount = null; state.origText = null; state.lastFix = null;
+  $("fixOut").innerHTML = "";
+  runValidate();
+}
+function lcsOps(a, b) {
+  const n = a.length, m = b.length, t = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) t[i][j] = a[i] === b[j] ? t[i + 1][j + 1] + 1 : Math.max(t[i + 1][j], t[i][j + 1]);
+  const ops = []; let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { ops.push(["=", a[i++], b[j++]]); }
+    else if (t[i + 1][j] >= t[i][j + 1]) ops.push(["-", a[i++], null]);
+    else ops.push(["+", null, b[j++]]);
+  }
+  while (i < n) ops.push(["-", a[i++], null]);
+  while (j < m) ops.push(["+", null, b[j++]]);
+  return ops;
+}
+function wordDiff(a, b) {
+  const tok = (s) => s.match(/\s+|[\w'’]+|[^\w\s]/g) || [];
+  let o = "", w = "";
+  for (const [k, x, y] of lcsOps(tok(a), tok(b))) {
+    if (k === "=") { o += esc(x); w += esc(y); }
+    else if (k === "-") o += `<del>${esc(x)}</del>`;
+    else w += `<ins>${esc(y)}</ins>`;
+  }
+  return [o, w];
+}
+// Copilot Studio's editor stores each line as a paragraph, so its counter counts every line break twice.
+function studioCount(text) {
+  const lines = text.replace(/\s+$/, "").split("\n");
+  return lines.join("\n\n").length;
+}
+// Side-by-side Current | Modified view with a Copy button on each side.
+function sideBySide(oldText, newText, opts = {}) {
+  const id = "sbs" + Math.random().toString(36).slice(2, 8);
+  state.sbs = state.sbs || {}; state.sbs[id] = { old: oldText, new: newText };
+  const ops = lcsOps(oldText.split("\n"), newText.split("\n"));
+  // Pair adjacent removed/added runs into modified rows.
+  const rows = []; let ln = 0, rn = 0;
+  for (let k = 0; k < ops.length;) {
+    if (ops[k][0] === "=") { rows.push({ c: "same", l: ++ln, r: ++rn, o: esc(ops[k][1]), w: esc(ops[k][2]) }); k++; continue; }
+    const dels = [], adds = [];
+    while (k < ops.length && ops[k][0] !== "=") { (ops[k][0] === "-" ? dels : adds).push(ops[k][0] === "-" ? ops[k][1] : ops[k][2]); k++; }
+    for (let x = 0; x < Math.max(dels.length, adds.length); x++) {
+      const d = dels[x], a = adds[x];
+      if (d !== undefined && a !== undefined) { const [o, w] = wordDiff(d, a); rows.push({ c: "mod", l: ++ln, r: ++rn, o, w }); }
+      else if (d !== undefined) rows.push({ c: "del", l: ++ln, r: "", o: `<del>${esc(d)}</del>`, w: "" });
+      else rows.push({ c: "add", l: "", r: ++rn, o: "", w: `<ins>${esc(a)}</ins>` });
+    }
+  }
+  const changed = rows.filter((r) => r.c !== "same").length;
+  // Fold long unchanged runs, keeping 2 lines of context around each change.
+  const keep = rows.map((r, i) => r.c !== "same" || rows.slice(Math.max(0, i - 2), i + 3).some((x) => x.c !== "same"));
+  let html = "", fold = [];
+  const flush = () => { if (!fold.length) return; html += `<tr class="fold" onclick="this.outerHTML=decodeURIComponent(this.dataset.h)" data-h="${encodeURIComponent(fold.join(""))}"><td colspan="4">⋯ ${fold.length} unchanged line${fold.length > 1 ? "s" : ""} — click to show</td></tr>`; fold = []; };
+  rows.forEach((r, i) => {
+    const tr = `<tr class="${r.c}"><td class="n">${r.l}</td><td class="o">${r.o}</td><td class="n">${r.r}</td><td class="w">${r.w}</td></tr>`;
+    if (keep[i] || opts.full) { flush(); html += tr; } else fold.push(tr);
+  });
+  flush();
+  return `<div class="sbs">
+    <div class="bar"><div><b>Current</b><span class="muted" title="Copilot Studio counts each line break twice">${oldText.length.toLocaleString()} chars (${studioCount(oldText).toLocaleString()} in Copilot Studio)</span><span style="margin-left:auto"></span><button class="btn ghost" onclick="copyText(state.sbs['${id}'].old, this)">Copy</button></div>
+      <div><b>${esc(opts.title || "Modified")}</b><span class="muted" title="Copilot Studio counts each line break twice">${newText.length.toLocaleString()} chars (${studioCount(newText).toLocaleString()} in Copilot Studio) · ${changed} line${changed === 1 ? "" : "s"} changed</span><span style="margin-left:auto"></span><button class="btn" onclick="copyText(state.sbs['${id}'].new, this)">Copy modified</button></div></div>
+    <div class="body"><table><colgroup><col style="width:34px"><col><col style="width:34px"><col></colgroup>${changed ? html : '<tr><td class="muted" colspan="4">No changes.</td></tr>'}</table></div></div>`;
+}
+function draftIssues(list, note = "") {
+  const head = note ? `<div class="card okc">${note}</div>` : "";
+  if (!list.length) return head + '<div class="card okc">The draft introduces no new validator findings.</div>';
+  return head + `<div class="card"><b class="err">New issues introduced by this draft</b></div>${list.map((f, i) => findingCard(f, i, "fixDraft")).join("")}`;
+}
+// Apply a fix to the draft itself (not the loaded agent) and refresh the comparison against the original.
+async function fixDraft(ruleIds) {
+  const d = state.lastDraft; if (!d) return;
+  $("draftIssues").innerHTML = '<div class="card"><span class="spinner"></span> Fixing the draft…</div>';
+  try {
+    const r = await post("/api/doctor/fix", { agent_id: d.draft_agent_id, rule_ids: ruleIds });
+    d.new_instructions = r.new_instructions; d.draft_agent_id = r.fixed_agent_id;
+    const introduced = new Set(d.introduced_findings.map((f) => f.rule_id));
+    d.introduced_findings = r.remaining.filter((f) => introduced.has(f.rule_id));
+    $("draftSbs").innerHTML = sideBySide(d.old_instructions || "", d.new_instructions);
+    const done = r.applied.map((a) => "✓ " + esc(a.change)).join("<br>");
+    const todo = r.manual.map((m) => `<div class="history" style="margin-top:6px">${esc(m.change)}</div>`).join("");
+    $("draftIssues").innerHTML = draftIssues(d.introduced_findings, done) + (todo ? `<div class="card">${todo}</div>` : "");
+  } catch (e) { $("draftIssues").innerHTML = `<div class="card"><span class="verr">${esc(e.message)}</span></div>`; }
+}
+async function copyText(text, btn) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; }
+  catch (e) {
+    const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand("copy"); } catch (e2) {}
+    ta.remove();
+  }
+  if (btn) { const old = btn.textContent; btn.textContent = ok ? "Copied ✓" : "Copy failed"; setTimeout(() => (btn.textContent = old), 1800); }
+  return ok;
+}
+async function sendToStudio(text, msgId) {
+  if (!text) {
+    const open = (state.lastFindings || []).filter((f) => f.origin === "maker" && f.auto_fixable);
+    if (open.length) {
+      const list = open.map((f) => `• ${issueTitle(f)}`).join("\n");
+      if (confirm(`${open.length} issue${open.length === 1 ? " is" : "s are"} still open and can be fixed automatically:\n\n${list}\n\nOK = fix ${open.length === 1 ? "it" : "them"} too, then send.\nCancel = send the draft as it is.`)) {
+        await runFix(open.map((f) => f.rule_id));
+      }
+    }
+  }
+  const t = text || state.lastFix.new_instructions;
+  await post("/api/doctor/pending", { text: t, label: "Doctor fix" });
+  const copied = await copyText(t);
+  const included = !text && state.resolved && state.resolved.length ? `<div style="margin-top:4px">Includes ${state.resolved.length} fix${state.resolved.length === 1 ? "" : "es"}: ${state.resolved.map((a) => esc(a.rule_id)).join(", ")}.</div>` : "";
+  $(msgId || "sendMsg").innerHTML = `<b>Staged ${t.length.toLocaleString()} characters${copied ? " and copied to your clipboard" : ""}.</b>${included} In Copilot Studio, on the agent's <b>Configure</b> page, either click your <b>Apply from Doctor</b> bookmark (it opens the editor, pastes, and checks the result)${copied ? ", or click <b>Edit</b> on Instructions, press <b>Ctrl+A</b> then <b>Ctrl+V</b>" : ""}. Review, then click <b>Save</b>. Then run the eval set in the agent's <b>Evaluation</b> tab and compare with your previous run.`;
+}
+async function downloadEvalSet(prompts) {
+  const r = await fetch("/api/doctor/evalset.csv", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompts, include_golden: true }) });
+  const b = await r.blob(); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "ess_doctor_evalset.csv"; a.click();
+}
+
+function findingCard(f, i, fixFn) {
+  const ki = f.known_issue_detail || {};
+  const fn = typeof fixFn === "string" ? fixFn : "runFix";
+  const isLen = /^L0-(LENGTH|HEADROOM)$/.test(f.rule_id);
+  return `<div class="card finding ${f.severity}" onclick="jump(${f.lines[0] || 0})" style="cursor:pointer">
+    <div class="row"><span class="sev ${f.severity}">${f.severity}</span>${f.user_sees ? `<span class="chip sees">Users see: ${esc(f.user_sees)}</span>` : ""}<span class="chip ${f.origin}">${f.origin === "practice" ? "best practice" + (f.template_gap ? " · ESS template also misses this" : "") : f.origin === "template" ? "inherited from ESS template" : "maker change"}</span><span class="chip">${esc(f.layer)}</span>${f.known_issue ? `<span class="chip">${esc(f.known_issue)}</span>` : ""}<span class="muted mono" style="margin-left:auto">${f.lines.length ? "lines " + (f.lines.length > 4 ? f.lines.slice(0, 4).join(", ") + "…" : f.lines.join(", ")) : ""}</span></div>
+    <h3>${esc(f.title)}</h3>
+    <div class="kv"><b>Current</b><div class="quote">${esc(f.current)}</div><b>Impact</b><div>${esc(f.impact)}</div><b>Fix</b><div class="fix">${esc(f.fix)} <span style="float:right"><button class="btn ghost" style="padding:2px 8px" onclick="event.stopPropagation();copyText(${esc(JSON.stringify(f.fix))}, this)">Copy</button>${(f.origin === "maker" || f.origin === "practice") && f.auto_fixable ? ` <button class="btn" style="padding:2px 8px" onclick="event.stopPropagation();${fn}(['${esc(f.rule_id)}'])">${f.origin === "practice" ? "Add it" : isLen ? "Shorten to fit (7,200)" : "Fix it"}</button>` : f.origin === "maker" ? ` <span class="muted" style="font-size:12px">manual fix</span>` : ""}</span></div>
+    ${f.test_prompts.length ? `<b>Test with</b><div class="tests">${f.test_prompts.map((p) => `<span>${esc(p)}</span>`).join("")}</div>` : ""}</div>
+    ${ki.history ? `<div class="history"><b>Seen before:</b> ${esc(ki.history)}</div>` : ""}
+  </div>`;
+}
+
+async function runValidate() {
+  if (!state.currentId) return needAgent("valMsg");
+  state.workingId = null; state.resolved = []; state.origChars = null; state.origCount = null; state.origText = null; state.lastFix = null;
+  $("valMsg").innerHTML = '<span class="spinner"></span>';
+  try {
+    const r = await post("/api/doctor/validate", { agent_id: state.currentId, baseline: $("baselineSel").value, compare_to: state.previousId || "" });
+    state.lastValidate = r; state.lastFindings = r.findings;
+    $("valMsg").textContent = r.baseline ? `Compared with ${r.baseline.name} (${r.baseline.template})` : "No baseline configured";
+    const c = r.counts;
+    $("valSummary").innerHTML = `<div class="grid" style="margin-bottom:12px">
+      <div class="stat"><div class="k">High</div><div class="v" style="color:var(--high)">${c.high}</div></div>
+      <div class="stat"><div class="k">Medium</div><div class="v" style="color:var(--med)">${c.medium}</div></div>
+      <div class="stat"><div class="k">Low / info</div><div class="v">${c.low + c.info}</div></div>
+      <div class="stat"><div class="k">Maker vs template</div><div class="v">${r.maker_vs_template.maker} / ${r.maker_vs_template.template}</div></div>
+      ${r.practices ? `<div class="stat"><div class="k">Best practices followed</div><div class="v">${r.practices.followed} <span class="muted" style="font-size:12px">/ ${r.practices.applicable}</span></div><div class="muted">${r.practices.gaps.length} to adopt${r.practices.router ? " · router agent" : ""}</div></div>` : ""}
+      <div class="stat"><div class="k">ESS core contract</div><div class="v">${r.core.filter((x) => x.present).length} / ${r.core.length}</div><div class="muted">${r.core.map((x) => (x.present ? "✓ " : "✗ ") + x.title).join(" · ")}</div></div>
+      ${r.new_since_previous ? `<div class="stat"><div class="k">New since previous</div><div class="v">${r.new_since_previous.length}</div></div>` : ""}
+    </div>
+    <div class="pipe">${PIPE_ORDER.slice(0, 4).map((p) => { const all = r.findings.filter((f) => f.pipeline === p); const g = all.filter((f) => f.origin !== "practice"), bp = all.length - g.length; const sees = [...new Set(g.map((f) => f.user_sees))]; return `<div class="pipebox ${g.some((f) => f.severity === "high") ? "bad" : g.length ? "warn" : "ok"}"><b>${esc(p)}</b><div class="v">${g.length}</div><div class="muted">${sees.length ? esc(sees.join(" · ")) : "No issues"}</div>${bp ? `<div class="muted" style="margin-top:2px">+ ${bp} best practice${bp === 1 ? "" : "s"} to adopt</div>` : ""}</div>`; }).join('<div class="arrow">→</div>')}</div>`;
+    $("findings").innerHTML = `<div class="card row" style="padding:8px 12px"><b>View</b><button class="btn ghost" onclick="setView('cards')">Cards</button><button class="btn ghost" onclick="setView('table')">Table</button><button class="btn ghost" onclick="copyMd()">Copy as Markdown</button><span id="copyMsg" class="muted"></span><button class="btn" style="margin-left:auto" onclick="runFix([])">Fix all</button></div><div id="fixOut"></div><div id="fview"></div>`;
+    setView(state.view || "cards");
+    renderViewer(r.findings);
+    const prompts = [...new Set(r.findings.filter((f) => f.origin === "maker").flatMap((f) => f.test_prompts))];
+    if (!$("cfPrompts").value) $("cfPrompts").value = prompts.join("\n");
+  } catch (e) { $("valMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
+function renderDiff(d, title) {
+  const blocks = d.blocks.filter((b) => b.status !== "unchanged");
+  return `<div class="card"><b>${esc(title)}</b> — ${d.counts.added} added · ${d.counts.removed} removed · ${d.counts.modified} modified · ${d.counts.unchanged} unchanged · ${d.char_delta >= 0 ? "+" : ""}${d.char_delta} chars ${d.moderation_changed ? `· <b>moderation ${esc(d.old.content_moderation)} → ${esc(d.new.content_moderation)}</b>` : ""}</div>` +
+    blocks.map((b) => `<div class="diffblock"><div class="hd"><span class="chip st-${b.status}">${b.status}</span><b>${esc(b.title)}</b><span class="muted mono" style="margin-left:auto">${b.old ? "old " + b.old.join("–") : ""} ${b.new ? "new " + b.new.join("–") : ""}</span></div>
+      ${(b.hunks || []).slice(0, 40).map((h) => `<div class="ln ${h.op === "+" ? "add" : "del"}">${h.op} ${String(h.line).padStart(5)}  ${esc(h.text)}</div>`).join("")}</div>`).join("");
+}
+function currentBotId() {
+  const cur = state.agents.find((a) => a.id === state.currentId);
+  const src = (cur && cur.summary.source) || "";
+  if (src.startsWith("copilotstudio:")) return src.split(":")[1];
+  return (cur && cur.live && cur.live.bot_id) || "";
+}
+async function loadTimeline() {
+  let bot = currentBotId();
+  if (!bot) bot = prompt("Agent ID (the GUID after /copilots/ in the Copilot Studio URL):") || "";
+  if (!bot) return;
+  const days = +(prompt("How many days of history?", "2") || 2);
+  $("diffMsg").innerHTML = `<span class="spinner"></span> Reading saves, publishes, and conversations from telemetry (last ${days} day${days === 1 ? "" : "s"})…`;
+  const r = await api(`/api/doctor/versions/${bot}?days=${days}`);
+  $("diffMsg").textContent = "";
+  if (!r.ok) return ($("timeline").innerHTML = `<div class="card err">${esc(r.error)}</div>`);
+  state.timeline = r;
+  const hhmm = (t) => String(t || "").replace("T", " ").slice(0, 19);
+  const vs = [...r.versions].reverse();
+  $("timeline").innerHTML = `<div class="card"><b>Version timeline</b> <span class="muted">— ${r.saves.length} saves, ${r.publishes.length} publish${r.publishes.length === 1 ? "" : "es"} in 7 days (Copilot Studio runtime telemetry). Instruction text comes from snapshots captured with <i>Send to Doctor</i>.</span>
+    ${r.publishes.length ? `<div class="muted" style="margin-top:4px">Published: ${r.publishes.map((p) => hhmm(p.t)).join(", ")}</div>` : ""}
+    <table style="margin-top:8px"><tr><th>Version</th><th>Saved (UTC)</th><th>Conversations on this version</th><th>Instructions</th><th></th></tr>
+    ${vs.map((v, i) => { const prev = vs.slice(i + 1).find((x) => x.snapshot); return `<tr>
+      <td><b>v${v.version}</b> <span class="muted">${esc(v.kind)}</span></td>
+      <td>${esc(hhmm(v.saved_at || v.first_seen))}</td>
+      <td>${v.conversation_ids.map((c) => `<a href="#" class="mono" onclick="$('cid').value='${esc(c)}';nav('conv');explainConv();return false">${esc(c.slice(0, 8))}…</a>`).join(" ")}</td>
+      <td>${v.snapshot ? `<span class="okc">captured</span> <button class="btn ghost" style="padding:2px 8px" onclick="loadVersion('${bot}','${v.snapshot}','v${v.version}')">Load</button>` : '<span class="muted">not captured</span>'}</td>
+      <td>${v.snapshot && prev && prev.snapshot ? `<button class="btn ghost" style="padding:2px 8px" onclick="compareVersions('${bot}','${prev.snapshot}','v${prev.version}','${v.snapshot}','v${v.version}')">Compare with v${prev.version}</button>` : ""}</td></tr>`; }).join("")}
+    </table>
+    ${vs.some((v) => !v.snapshot) ? '<div class="history" style="margin-top:8px">Some versions weren\'t captured. Telemetry records when the agent was saved and which conversations ran on each version, but not the instruction text. Click <b>Send to Doctor</b> after each save (the extension will do this automatically on Save).</div>' : ""}</div>`;
+}
+async function loadVersion(bot, snap, label) {
+  const r = await post(`/api/doctor/versions/${bot}/load/${snap}`, {});
+  r.summary.source = "copilotstudio:" + bot;
+  addAgent(r, label);
+  return r.agent_id;
+}
+async function compareVersions(bot, s1, l1, s2, l2) {
+  const a = await loadVersion(bot, s1, l1);
+  const b = await loadVersion(bot, s2, l2);
+  state.previousId = a; state.currentId = b; renderAgents();
+  nav("agent");
+  await showDiff("previous");
+}
+
+async function showDiff(kind) {
+  if (!state.currentId) return needAgent("diffMsg");
+  if (kind === "previous" && !state.previousId) return ($("diffMsg").textContent = "Load a second version and mark it as previous.");
+  const r = await post("/api/doctor/validate", { agent_id: state.currentId, baseline: $("baselineSel").value, compare_to: kind === "previous" ? state.previousId : "" });
+  const d = kind === "previous" ? r.diff_vs_previous : r.diff_vs_baseline;
+  $("diffOut").innerHTML = d ? renderDiff(d, kind === "previous" ? "Current vs previous" : "Current vs ESS template") : '<p class="muted">No baseline configured.</p>';
+  $("diffMsg").textContent = "";
+}
+
+async function recentConvs() {
+  $("convMsg").innerHTML = '<span class="spinner"></span> Querying Kusto…';
+  const r = await api(`/api/doctor/kusto/conversations?region=${$("region").value}&hours=${$("days").value * 24}`);
+  $("convMsg").textContent = "";
+  if (!r.ok) return ($("recent").innerHTML = `<div class="card err">${esc(r.error)}</div>`);
+  $("recent").innerHTML = `<div class="card"><table><tr><th>Last turn (UTC)</th><th>Conversation</th><th>Agent</th><th>Channel</th><th>Turns</th><th>Failed</th><th>p95 ms</th></tr>${r.conversations.map((c) => `<tr><td>${esc(c.lastSeen)}</td><td class="mono"><a href="#" onclick="$('cid').value='${esc(c.conversationId)}';explainConv();return false">${esc(c.conversationId)}</a></td><td class="mono">${esc(c.schema)}</td><td>${esc(c.channel)}</td><td>${c.turns}</td><td class="${c.failed ? "fail" : ""}">${c.failed}</td><td>${Math.round(c.p95_ms || 0)}</td></tr>`).join("")}</table></div>`;
+}
+
+async function explainConv() {
+  const raw = $("cid").value.trim(); if (!raw) return;
+  if (/copilotdevui|sourceConversationId=/i.test(raw)) return devuiLookup(raw);
+  const cid = raw;
+  const t0 = Date.now();
+  const tick = setInterval(() => { $("convMsg").innerHTML = `<span class="spinner"></span> Reading runtime telemetry and writing the report… ${Math.round((Date.now() - t0) / 1000)}s <span class="muted">(usually 20–60 s)</span>`; }, 1000);
+  let r;
+  try {
+    r = await post("/api/doctor/report", { agent_id: state.currentId || "", conversation_id: cid, question: $("question").value, response: $("response").value, region: $("region").value, days: +$("days").value });
+  } catch (e) { clearInterval(tick); return ($("convMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`); }
+  clearInterval(tick);
+  $("convMsg").textContent = `Done in ${Math.round((Date.now() - t0) / 1000)}s`;
+  const t = r.trace || r;
+  if (!r.ok || !t.ok) return ($("convOut").innerHTML = `<div class="card err">${esc(r.error || t.error)}</div>` +
+    (/No runtime telemetry/.test(r.error || t.error || "") ? `<div class="history">Copilot Studio runtime data usually arrives 5–15 minutes after a conversation. <button class="btn ghost" style="padding:2px 10px" onclick="explainConv()">Retry</button> If it's still missing after 15 minutes, the conversation may be on a different agent or tenant, or you can paste the DevUI link from <code>/debug</code> to find the matching sessions.</div>` : ""));
+  const v = t.verdict;
+  state.lastReport = { id: cid, text: r.report };
+  $("convOut").innerHTML = `<div class="card"><div class="row"><b>Investigation report</b><span class="muted">${esc(cid)}</span>
+      <button class="btn ghost" style="margin-left:auto" onclick="copyText(state.lastReport.text, this)">Copy</button>
+      <button class="btn ghost" onclick="downloadReport()">Download .txt</button></div>
+      ${r.agent_mismatch ? `<div class="history">${esc(r.agent_mismatch)}</div>` : ""}
+      <pre class="report">${esc(r.report)}</pre></div>
+    <details class="card"><summary><b>Evidence details</b> <span class="muted">— raw runtime signals behind the report</span></summary>
+    <div class="verdict ${v.stage}" style="margin-top:10px"><h3>${esc(v.headline)}</h3><div>${esc(v.detail)}</div></div>
+    <div class="grid">
+      <div class="stat"><div class="k">Agent</div><div class="v mono" style="font-size:13px">${esc(t.bot.schema)}</div><div class="muted">${esc(t.bot.channel)} · design mode ${esc(t.bot.design_mode)}</div></div>
+      <div class="stat"><div class="k">Published version(s)</div><div class="v mono" style="font-size:13px">${t.published_versions.map(esc).join("<br>") || "—"}</div></div>
+      <div class="stat"><div class="k">Planner model</div><div class="v" style="font-size:15px">${t.planner_model_series.map(esc).join(", ") || "—"}</div></div>
+      <div class="stat"><div class="k">Turns · LLM calls · tools</div><div class="v">${t.turns.length} · ${t.llm_calls.length} · ${t.tools.length}</div></div>
+      <div class="stat"><div class="k">Exceptions</div><div class="v ${t.exceptions.length ? "fail" : ""}">${t.exceptions.length}</div></div>
+    </div>
+    ${r.agent_mismatch ? `<div class="history" style="margin-top:12px">${esc(r.agent_mismatch)}</div>` : ""}
+    ${(t.connected_agents || []).length ? `<div class="card" style="margin-top:12px"><b>Connected agents called from this Hub conversation</b><table><tr><th>Agent</th><th>Turns</th><th>Failed</th><th></th></tr>${t.connected_agents.map((c) => `<tr><td class="mono">${esc(c.schema)}</td><td>${c.turns}</td><td class="${c.failed ? "fail" : ""}">${c.failed}</td><td><button class="btn ghost" onclick="$('cid').value='${esc(c.conversationId)}';explainConv()">Drill in</button></td></tr>`).join("")}</table></div>` : ""}
+    ${t.parent_conversation_id ? `<div class="card" style="margin-top:12px">Connected-agent conversation · <button class="btn ghost" onclick="$('cid').value='${esc(t.parent_conversation_id)}';explainConv()">Back to Hub conversation</button></div>` : ""}
+    ${r.linked_findings && r.linked_findings.length ? `<div class="card" style="margin-top:12px"><b>Instruction lines most likely involved</b> <span class="muted">(maker changes affecting the “${esc(v.stage)}” stage)</span></div>${r.linked_findings.map(findingCard).join("")}` : ""}
+    <div class="card"><b>Knowledge search</b><table><tr><th>Time</th><th>Source</th><th>Results</th><th>Kept after filtering</th></tr>${t.searches.map((s) => `<tr><td>${esc(s.t)}</td><td>${esc(s.source)}</td><td>${s.results}</td><td class="${s.kept === 0 ? "fail" : ""}">${s.kept}</td></tr>`).join("") || "<tr><td colspan=4 class=muted>No knowledge search ran</td></tr>"}</table></div>
+    <div class="card"><b>LLM calls</b><table><tr><th>Time</th><th>Purpose</th><th>Model</th><th>Outcome</th><th>Stop</th><th>Drop reason</th><th>RAI policy</th><th>ms</th></tr>${t.llm_calls.map((c) => `<tr><td>${esc(c.t)}</td><td>${esc(c.kind)}</td><td class="mono">${esc(c.model)}</td><td class="${c.outcome === "Success" ? "" : "fail"}">${esc(c.outcome)}</td><td>${esc(c.stop)}</td><td>${esc(c.drop_reason || "")}</td><td>${esc(c.rai_policy)}</td><td>${c.elapsed_ms ?? ""}</td></tr>`).join("")}</table></div>
+    <div class="card"><b>Tools executed</b> ${t.tools.map((x) => `<span class="chip ${x.error ? "fail" : ""}">${esc(x.type)}${x.error ? " ✗" : ""}</span>`).join(" ") || '<span class="muted">none</span>'}
+      ${t.content_filter_signals.length ? `<div style="margin-top:8px"><b>Content-filter signals</b>${t.content_filter_signals.map((c) => `<div class="quote">${esc(c.message)}</div>`).join("")}</div>` : ""}
+      ${t.exceptions.length ? `<div style="margin-top:8px"><b>Exceptions</b>${t.exceptions.map((e) => `<div class="quote">${esc(e.activity)} · ${esc(e.type)} · ${esc(e.detail)}</div>`).join("")}</div>` : ""}</div></details>`;
+}
+function downloadReport() {
+  const b = new Blob([state.lastReport.text], { type: "text/plain" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `Conversation_Analysis_${state.lastReport.id.slice(0, 8)}.txt`; a.click();
+}
+$("devuiFile").addEventListener("change", async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  $("devuiMsg").innerHTML = `<span class="spinner"></span> Reading ${(f.size / 1e6).toFixed(1)} MB…`;
+  try {
+    const r = await fetch(`/api/doctor/devui?agent_id=${encodeURIComponent(state.currentId || "")}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: await f.text() });
+    const raw = await r.text(); let j; try { j = JSON.parse(raw); } catch (e) { j = { detail: `Server error ${r.status}: ${raw.slice(0, 120)}` }; }
+    if (!r.ok) throw new Error(j.detail || r.statusText);
+    $("devuiMsg").textContent = ""; renderDevui(j);
+  } catch (e) { $("devuiMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+});
+const DEVUI_BM = `(async()=>{const O='${location.origin}';const W=ms=>new Promise(r=>setTimeout(r,ms));const btn=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Download');if(!btn){alert('ESS Doctor: open a DevUI conversation first.');return}if(btn.disabled){alert('ESS Doctor: wait until DevUI has loaded the conversation, then click again.');return}let got=null;const oc=URL.createObjectURL;URL.createObjectURL=function(b){if(b instanceof Blob)got=b;return oc.apply(this,arguments)};const ac=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){if(this.download&&/^(blob|data):/.test(this.href)){if(this.href.startsWith('data:'))got=this.href;return}return ac.apply(this,arguments)};try{btn.click();for(let i=0;i<75&&!got;i++)await W(200)}finally{URL.createObjectURL=oc;HTMLAnchorElement.prototype.click=ac}if(!got){alert('ESS Doctor: could not capture the export. Use Download in DevUI and upload the file in the Doctor.');return}let text;if(typeof got==='string'){const i=got.indexOf(',');const meta=got.slice(0,i),body=got.slice(i+1);text=/;base64/.test(meta)?new TextDecoder().decode(Uint8Array.from(atob(body),c=>c.charCodeAt(0))):decodeURIComponent(body)}else{text=await got.text()}try{const r=await fetch(O+'/api/doctor/devui/push',{method:'POST',headers:{'Content-Type':'application/json'},body:text});const j=await r.json();alert(j.ok?'Sent to ESS Doctor ('+j.turns+' turn(s)). Switch back to the Doctor tab.':'ESS Doctor: '+(j.detail||'error'))}catch(e){alert('ESS Doctor not reachable: '+e)}})()`;
+$("bm3").href = "javascript:" + encodeURIComponent(DEVUI_BM);
+$("bm3").addEventListener("click", (e) => { e.preventDefault(); alert("Drag this button to your bookmarks bar, then click it on a DevUI conversation."); });
+let devuiPoll = null;
+function devuiWait(label) {
+  clearInterval(devuiPoll);
+  const since = new Date().toISOString(), t0 = Date.now();
+  const show = () => { $("devuiMsg").innerHTML = `<span class="spinner"></span> ${label} Waiting for <b>Send DevUI to Doctor</b>… ${Math.round((Date.now() - t0) / 1000)}s <button class="btn ghost" style="padding:2px 10px" onclick="clearInterval(devuiPoll);$('devuiMsg').textContent=''">Cancel</button>`; };
+  show();
+  devuiPoll = setInterval(async () => {
+    show();
+    try {
+      const r = await api(`/api/doctor/devui/latest?since=${encodeURIComponent(since)}&agent_id=${encodeURIComponent(state.currentId || "")}`);
+      if (r.ok) { clearInterval(devuiPoll); $("devuiMsg").textContent = `Received in ${Math.round((Date.now() - t0) / 1000)}s`; renderDevui(r); window.focus(); }
+    } catch (e) {}
+    if (Date.now() - t0 > 10 * 60000) { clearInterval(devuiPoll); $("devuiMsg").textContent = "Stopped waiting. Click Analyze to try again."; }
+  }, 2000);
+}
+function devuiFromUrl() {
+  const url = $("devuiUrl").value.trim(); if (!url) return;
+  if (!/^https:\/\/(aka\.ms\/copilotdevui|[a-z0-9.-]*devui[a-z0-9.-]*\.(office\.net|office\.com|microsoft\.com))/i.test(url)) {
+    $("devuiMsg").innerHTML = '<span class="err">Paste a Copilot DevUI link (https://aka.ms/copilotdevui?... from /debug or Share).</span>'; return;
+  }
+  window.open(url, "_blank", "noopener");
+  devuiWait("Opened DevUI in a new tab. When the conversation has loaded, click your bookmark there.");
+}
+async function devuiTurn() {
+  const cid = state.devui && state.devui.conversation_id; if (!cid) return;
+  try { renderDevui(await api(`/api/doctor/devui/${cid}?turn=${$("devuiTurn").value}&agent_id=${encodeURIComponent(state.currentId || "")}`)); }
+  catch (e) { $("devuiMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+function renderDevui(r) {
+  state.devui = r; state.lastReport = { id: r.conversation_id, text: r.report };
+  const sel = $("devuiTurn");
+  sel.style.display = r.turns.length > 1 ? "" : "none";
+  sel.innerHTML = r.turns.map((t, i) => `<option value="${i}" ${i === r.turn ? "selected" : ""}>Turn ${i + 1}: ${esc(t.question)}</option>`).join("");
+  const s = r.summary;
+  $("devuiOut").innerHTML = `<div class="card"><div class="row"><b>Report</b>
+      <button class="btn ghost" style="margin-left:auto" onclick="copyText(state.devui.report, this)">Copy</button>
+      <button class="btn ghost" onclick="state.lastReport={id:state.devui.conversation_id,text:state.devui.report};downloadReport()">Download .txt</button>
+      ${r.served ? `<button class="btn" onclick="addAgent(state.devui.served,'Instructions that ran (DevUI ${esc(r.conversation_id.slice(0, 8))})')">Run an agent check-up on these instructions</button>` : ""}</div>
+      <pre class="report">${esc(r.report)}</pre></div>
+    <details class="card"><summary><b>Model calls</b> (${r.llm_calls.length})</summary><table><tr><th>Purpose</th><th>Model</th><th>ms</th><th>Tokens in / out</th><th>Tool calls</th><th>Output</th></tr>
+      ${r.llm_calls.map((c) => `<tr><td>${esc(c.purpose)}</td><td class="mono">${esc(c.model)}</td><td>${c.latency_ms}</td><td>${c.prompt_tokens ?? "?"} / ${c.completion_tokens ?? "?"}</td><td>${c.tool_calls.map((t) => esc(t.name)).join(", ") || "—"}</td><td>${esc((c.response || "").slice(0, 160))}</td></tr>`).join("")}</table></details>
+    <details class="card"><summary><b>Tools and topics</b></summary><div class="kv"><b>Offered to planner</b><div>${s.tools_offered.map((t) => `<span class="chip">${esc(t)}</span>`).join(" ") || "—"}</div>
+      <b>Called</b><div>${s.tool_calls.map((t) => `<span class="chip">${esc(t.name)}</span>`).join(" ") || "none"}</div>
+      <b>Copilot Studio topics</b><div>${s.topics.map((t) => `<span class="chip">${esc(t)}</span>`).join(" ") || "—"}</div>
+      <b>Safety</b><div>${s.rai.ran.length} classifiers run; triggered: ${esc(s.rai.triggered.join(", ") || "none")}</div></div></details>`;
+}
+
+async function devuiLookup(raw) {
+  const url = (raw.match(/https:\/\/aka\.ms\/copilotdevui\S+/i) || [raw])[0];
+  const q = new URLSearchParams(url.split("?")[1] || "");
+  const m365Id = q.get("sourceConversationId") || "";
+  const created = (q.get("conversationCreatedTime") || "").replace(/\.\d+Z$/, "Z");
+  const cur = state.agents.find((a) => a.id === state.currentId);
+  const bot = ((cur && cur.summary.source) || "").startsWith("copilotstudio:") ? cur.summary.source.split(":")[1] : "";
+  if (!created) return ($("convOut").innerHTML = '<div class="card err">The DevUI link has no conversationCreatedTime.</div>');
+  $("convMsg").innerHTML = '<span class="spinner"></span> Finding Copilot Studio runtime sessions for this conversation…';
+  const r = await api(`/api/doctor/kusto/near?start=${encodeURIComponent(created)}&minutes=90&region=${$("region").value}&bot=${bot}`);
+  $("convMsg").textContent = "";
+  if (r.ok && r.conversations.some((c) => c.conversationId === m365Id)) { $("cid").value = m365Id; return explainConv(); }
+  $("convOut").innerHTML = `<div class="verdict routing"><h3>Declarative agent conversation (M365 Copilot)</h3><div>M365 Copilot conversation <span class="mono">${esc(m365Id)}</span>, started ${esc(created)}. The planner, knowledge search, and answer for a declarative agent run in the M365 Copilot orchestrator — open DevUI for that trace. Below are the Copilot Studio runtime sessions this agent ran in the same window (topics and tools it called into ESS).</div></div>
+    <div class="card row"><a class="btn" href="${esc(url)}" target="_blank" rel="noopener">Open orchestration trace in DevUI</a><span class="muted">Available for 24 hours after <code>/debug</code>.</span></div>
+    ${r.ok ? `<div class="card"><b>Copilot Studio runtime sessions${bot ? " for this agent" : ""}</b> ${r.conversations.length ? "" : '<span class="muted">— none. The agent answered without calling any ESS topic or tool in this window (for example, a scripted refusal or a pure knowledge answer).</span>'}
+      ${r.conversations.length ? `<table><tr><th>First turn (UTC)</th><th>Runtime session</th><th>Agent</th><th>Turns</th><th>Failed</th><th></th></tr>${r.conversations.map((c) => `<tr><td>${esc(c.firstSeen)}</td><td class="mono">${esc(c.conversationId)}</td><td class="mono">${esc(c.schema)}</td><td>${c.turns}</td><td class="${c.failed ? "fail" : ""}">${c.failed}</td><td><button class="btn ghost" onclick="$('cid').value='${esc(c.conversationId)}';explainConv()">Diagnose</button></td></tr>`).join("")}</table>` : ""}</div>`
+      : `<div class="card err">${esc(r.error)}</div>`}`;
+}
+
+async function appInsights() {
+  const cid = $("cid").value.trim(); if (!cid) return;
+  const r = await api(`/api/doctor/appinsights/${cid}`);
+  $("convOut").innerHTML = r.ok ? `<div class="card"><b>App Insights</b><pre class="quote">${esc(JSON.stringify(r.summary, null, 2))}</pre></div>` : `<div class="card err">${esc(r.error)}</div>`;
+}
+
+async function parsePurview() {
+  const f = $("purviewFile").files[0]; if (!f) return;
+  const r = await post("/api/doctor/evidence/purview", { text: await f.text(), agent_filter: $("purviewAgent").value });
+  if (!r.ok) return ($("purviewOut").innerHTML = `<p class="err">${esc(r.error)}</p>`);
+  $("purviewOut").innerHTML = `<p class="muted">${r.rows} rows · agents: ${r.agents.map((a) => esc(a[0]) + " (" + a[1] + ")").join(", ")}</p>
+    <table><tr><th>Agent version</th><th>Interactions</th><th>First</th><th>Last</th><th>Avg resources/turn</th><th>Top resources</th><th>Models</th></tr>${r.versions.map((v) => `<tr><td class="mono">${esc(v.version)}</td><td>${v.interactions}</td><td>${esc(v.first)}</td><td>${esc(v.last)}</td><td>${v.avg_resources_per_turn}</td><td>${v.top_resources.slice(0, 3).map((x) => esc(x[0])).join("<br>")}</td><td>${v.models.map((x) => esc(x[0])).join(", ")}</td></tr>`).join("")}</table>`;
+}
+async function parseDev() {
+  const r = await post("/api/doctor/evidence/devmode", { text: $("devlog").value });
+  $("devOut").innerHTML = `${r.diagnosis.map((d) => `<div class="history">${esc(d)}</div>`).join("")}<table>${Object.entries(r.signals).filter(([, v]) => v.length).map(([k, v]) => `<tr><th>${esc(k)}</th><td>${v.slice(0, 6).map((x) => `<div class="mono">${esc(x)}</div>`).join("")}</td></tr>`).join("")}</table><p class="muted">${r.unmatched_lines} line(s) not recognized</p>`;
+}
+
+function parsePrompts() {
+  return $("cfPrompts").value.split("\n").map((s) => s.trim()).filter(Boolean).map((s) => {
+    const m = s.match(/^(offer|refuse):\s*(.+)$/i);
+    return m ? { prompt: m[2], expect: m[1].toLowerCase() === "offer" ? "offer" : "refusal" } : { prompt: s, expect: "answer" };
+  });
+}
+async function planCf() {
+  const r = await post("/api/doctor/counterfactual/plan", { previous_id: $("prevSel").value, current_id: $("curSel").value });
+  $("cfPlan").innerHTML = `<table><tr><th>Variant</th><th>Chars</th></tr>${r.variants.map((v) => `<tr><td>${esc(v.label)}</td><td>${v.chars.toLocaleString()}</td></tr>`).join("")}</table>`;
+}
+async function runCf() {
+  const log = $("cfLog"); log.style.display = ""; log.textContent = "";
+  try {
+    const r = await post("/api/doctor/counterfactual/run", { previous_id: $("prevSel").value, current_id: $("curSel").value, prompts: parsePrompts(), repeats: +$("cfRepeats").value, confirm_test_agent: $("cfConfirm").checked });
+    const es = new EventSource(`/api/doctor/jobs/${r.job_id}/stream`);
+    es.onmessage = (ev) => { const m = JSON.parse(ev.data); log.textContent += (m.message || m.type) + "\n"; log.scrollTop = 1e9;
+      if (m.type === "done") { es.close(); showRun(m.run_id); } if (m.type === "error") es.close(); };
+  } catch (e) { log.textContent = e.message; }
+}
+async function loadRuns() {
+  const r = await api("/api/doctor/counterfactual/runs");
+  $("cfOut").innerHTML = `<div class="card"><table><tr><th>Run</th><th>Variants</th><th>Prompts</th><th>Regressions</th></tr>${r.runs.map((x) => `<tr><td><a href="#" onclick="showRun('${x.id}');return false">${x.id}</a></td><td>${x.variants}</td><td>${x.prompts}</td><td>${x.regressions}</td></tr>`).join("") || "<tr><td colspan=4 class=muted>No runs yet</td></tr>"}</table></div>`;
+}
+async function showRun(id) {
+  const run = await api(`/api/doctor/counterfactual/runs/${id}`);
+  const vids = run.variants.map((v) => v.id);
+  const cell = (vid, p) => { const rows = (run.results[vid] || []).filter((x) => x.prompt === p); const ok = rows.filter((x) => x.pass).length;
+    return `<td class="${ok === rows.length ? "pass" : "fail"}" title="${esc(rows.map((x) => x.label + ": " + x.reply.slice(0, 160)).join("\n\n"))}">${ok}/${rows.length}<div class="muted" style="font-weight:400">${esc(rows[0]?.label || "")}</div></td>`; };
+  const prompts = run.attribution.map((a) => a.prompt);
+  $("cfOut").innerHTML = `<div class="card"><b>Attribution</b>${run.attribution.filter((a) => a.regressed).map((a) => `<div class="history"><b>${esc(a.prompt)}</b> regressed (${Math.round(a.previous * 100)}% → ${Math.round(a.current * 100)}%). ${a.causes.length ? "Caused by " + a.causes.map((c) => `change #${c.change.n} (${esc(c.change.status)} “${esc(c.change.title)}”) — passes ${Math.round(c.pass_rate_without * 100)}% without it`).join("; ") : "No single change explains it (interaction between changes)."}</div>`).join("") || '<p class="okc">No regressions.</p>'}</div>
+    <div class="card"><table><tr><th>Prompt</th>${run.variants.map((v) => `<th>${esc(v.label)}</th>`).join("")}</tr>${prompts.map((p) => `<tr><td>${esc(p)}</td>${vids.map((v) => cell(v, p)).join("")}</tr>`).join("")}</table></div>`;
+}
+
+const SLOTS = {
+  terminology: [["terms", "Term pairs (one per line: user term = source term)", "textarea"]],
+  restricted: [["subject", "Subject to restrict (e.g. personal financial or investment advice)"], ["allowed", "Still allowed (e.g. payslips, 401(k) plan features)"]],
+  format: [["scope", "Which answers (e.g. policy answers)"], ["format_spec", "Format (e.g. 3 bullets then a source link)"]],
+  routing: [["subject", "Which questions (e.g. procedures, CAP relocation)"], ["source_name", "Knowledge source name, as configured"], ["mode", "Use it only for these questions, or never for these questions", "select:only=Use this source for these questions|exclude=Don't use this source for these questions"]],
+  escalation: [["scope", "When (condition)"], ["route", "Route (e.g. People team via Create Case)"]],
+  persona: [],
+  disclaimer: [["disclaimer_text", "Disclaimer text, exactly as it should appear (blank = keep the current one)"], ["disclaimer_style", "Style (plain, bold, italic, bold italic)"], ["scope", "Only on (optional, e.g. policy answers; blank = every response)"]],
+  condense: [["target_chars", "Target length in characters (e.g. 5000)"]],
+};
+function renderSlots() {
+  $("slots").innerHTML = (SLOTS[$("ctype").value] || []).map(([k, label, type]) => `<label class="f">${esc(label)}</label>${type === "textarea" ? `<textarea id="slot_${k}"></textarea>`
+    : (type || "").startsWith("select:") ? `<select id="slot_${k}"><option value="">Work it out from my description</option>${type.slice(7).split("|").map((o) => { const [v, t] = o.split("="); return `<option value="${v}">${esc(t)}</option>`; }).join("")}</select>`
+    : `<input type="text" id="slot_${k}" style="width:100%" />`}`).join("");
+}
+function renderCondense(c) {
+  const kept = Object.entries(c.abilities_kept).map(([k, v]) => `${v} ${esc(k)}`).join(" · ");
+  return `<div class="card"><b>Condense to ${c.target.toLocaleString()} characters</b>
+      <div class="${c.reached ? "okc" : "err"}" style="margin-top:4px">${c.chars.before.toLocaleString()} → ${c.chars.after.toLocaleString()} characters in Copilot Studio's counter${c.reached ? " — target reached" : ` — ${c.still_needed.toLocaleString()} still needed`}</div>
+      <table style="margin-top:6px"><tr><th>Edit</th><th>Saved</th><th></th></tr>${c.steps.map((s) => `<tr><td>${s.applied ? "✓" : "–"} ${esc(s.step)}</td><td>${s.saved}</td><td class="muted">${esc(s.note)}</td></tr>`).join("")}</table>
+      <div class="muted" style="margin-top:6px">Kept intact: ${kept}.</div>
+      ${!c.reached ? `<div class="history" style="margin-top:8px">Safe edits can't reach the target: these instructions are already terse. Reaching it means moving content out of the instructions. Moving the passages below marked for topic or knowledge source descriptions would save about <b>${c.movable_savings.toLocaleString()}</b> characters (leaving a one-line pointer each). Change one at a time and re-run your eval set after each.</div>
+        <table style="margin-top:6px"><tr><th>Line</th><th>Chars</th><th>Passage</th><th>Where it could go</th></tr>${c.candidates.map((x) => `<tr onclick="jump(${x.line})" style="cursor:pointer"><td>${x.line}</td><td>${x.chars}</td><td><div class="quote">${esc(x.excerpt)}…</div>${x.ess_core ? '<span class="chip">ESS core — keep</span>' : ""}</td><td><b>${esc(x.move_to)}</b><div class="muted">${esc(x.why)}</div></td></tr>`).join("")}</table>` : ""}
+    </div>`;
+}
+async function loadPractices() {
+  if ($("practicesOut").dataset.loaded) return;
+  const r = await api("/api/doctor/practices");
+  const stages = [...new Set(r.practices.map((p) => p.stage))];
+  $("practicesOut").innerHTML = stages.map((s) => `<div class="pipehd"><b>${esc(s)}</b> <span>${r.practices.filter((p) => p.stage === s).length} practices</span></div>
+    <table class="rtable"><tr><th>ID</th><th>Practice</th><th>Guidance</th><th>Seen in</th></tr>${r.practices.filter((p) => p.stage === s).map((p) => `<tr><td class="mono">${esc(p.id)}</td><td><b>${esc(p.title)}</b></td><td>${esc(p.guidance)}</td><td class="muted">${esc(p.seen_in)}</td></tr>`).join("")}</table>`).join("");
+  $("practicesOut").dataset.loaded = "1";
+}
+async function runDraft() {
+  if (!state.currentId) return needAgent("draftMsg");
+  if (!$("intent").value.trim()) return ($("draftMsg").textContent = "Describe the change you need.");
+  if (!state.ctypeTouched) {
+    const t = $("intent").value.toLowerCase();
+    const guess = /\bdisclaimers?\b|\b(append|add|include)\b.{0,40}\b(to|at the end of)\b.{0,20}\b(each|every|all)\b.{0,20}\b(messages?|responses?|answers?)\b/.test(t) ? "disclaimer"
+      : /\b(reduce|shorten|condense|compress|trim|cut|shrink)\b.{0,60}\b(chars?|characters?|length|size|instructions?)\b|\b\d{3,5}\s*(chars?|characters?)\b/.test(t) ? "condense"
+      : /\b(knowledge source|sharepoint|\bkb\b|site)\b|\b(use|search|query)\b.{1,60}\bfor\b/.test(t) ? "routing"
+      : /\b(don'?t|do not|never|avoid|refuse|decline|restrict|stop)\b.{0,20}\b(answer|discuss|talk|provide|respond|help|give|share|cover)\b/.test(t) ? "restricted"
+      : /\b(means|synonym|term|glossary|dictionary|also called|acronym)\b|=/.test(t) ? "terminology"
+      : /\b(format|bullets?|table|length|short|concise)\b/.test(t) ? "format"
+      : /\b(escalat|create a case|ticket|hand ?off|contact)\b/.test(t) ? "escalation"
+      : /\b(tone|voice|friendly|formal|empathetic)\b/.test(t) ? "persona" : $("ctype").value;
+    if ([...$("ctype").options].some((o) => o.value === guess)) { $("ctype").value = guess; renderSlots(); }
+  }
+  const lines = (id) => $(id).value.split("\n").map((s) => s.trim()).filter(Boolean);
+  const body = { agent_id: state.currentId, change_type: $("ctype").value, intent: $("intent").value, should_affect: lines("should"), must_not_affect: lines("mustnot"), evals: state.evals || [], content_sample: $("content").value, use_llm: $("useLlm").checked };
+  for (const [k] of SLOTS[body.change_type] || []) {
+    const v = $("slot_" + k).value;
+    if (k === "terms") body.terms = v.split("\n").map((s) => s.split(/=|->/).map((x) => x.trim())).filter((p) => p.length === 2 && p[0] && p[1]);
+    else if (k === "target_chars") body[k] = parseInt(v.replace(/[^\d]/g, ""), 10) || 0;
+    else body[k] = v;
+  }
+  $("draftMsg").innerHTML = '<span class="spinner"></span>';
+  try {
+    const r = await post("/api/doctor/draft", body);
+    if (r.needs_input) {
+      $("draftMsg").textContent = "";
+      const det = $("slots").closest("details"); if (det) det.open = true;
+      if (r.change_type && $("ctype").value !== r.change_type) { $("ctype").value = r.change_type; renderSlots(); }
+      r.needs_input.forEach((n) => { const el = $("slot_" + n.slot); if (el) el.style.outline = "2px solid var(--med)"; });
+      $("draftOut").innerHTML = `<div class="card"><b>More detail needed</b><div style="margin-top:6px">${esc(r.message)}</div>`
+        + (r.unused && r.unused.length ? `<div class="muted" style="margin-top:6px">Not used from your description: ${r.unused.map((u) => `“${esc(u)}”`).join("; ")}. Describe each change separately.</div>` : "")
+        + `<div class="muted" style="margin-top:6px">Fill the highlighted fields under <b>More detail</b>, then click <b>Draft the change</b> again.</div></div>`;
+      return;
+    }
+    state.lastDraft = r;
+    $("draftMsg").textContent = "";
+    state.agents.push({ id: r.draft_agent_id, label: "Draft: " + body.intent.slice(0, 40), summary: { char_count: r.char_count.after, fingerprint: "draft" }, lines: [], blocks: [] });
+    renderAgents();
+    const p = r.placement, cc = r.char_count;
+    $("draftOut").innerHTML = `<div class="card"><b>Where this belongs:</b> <span class="chip">${esc(p.target.replaceAll("_", " "))}</span> <span class="muted">${esc(p.why)}</span>${p.owners.length ? `<div class="muted">Related topics: ${p.owners.map(esc).join(", ")}</div>` : ""}</div>
+      <div class="card"><b>Drafted clause</b> ${r.llm_polished ? '<span class="chip">polished by Azure OpenAI</span>' : ""}<div class="fix" style="margin-top:6px">${esc(r.clause)}</div>
+        <div class="${cc.after > cc.limit ? "err" : "muted"}" style="margin-top:6px">Length ${cc.before.toLocaleString()} → ${cc.after.toLocaleString()} / ${cc.limit.toLocaleString()}${cc.after > cc.limit ? " — over the declarative agent limit; make room (Validate → L0 finding) before publishing" : ""}</div>
+        ${r.source_note ? `<div class="history" style="margin-top:6px">${esc(r.source_note)}</div>` : ""}
+        ${r.unused && r.unused.length ? `<div class="history" style="margin-top:6px">Not used from your description: ${r.unused.map((u) => `“${esc(u)}”`).join("; ")}. Draft it as a separate change if you still need it.</div>` : ""}
+        ${r.practices && r.practices.length ? `<details style="margin-top:8px"><summary class="muted">Best practices applied (${r.practices.length}) — from the ESS template and the customer agents reviewed</summary>${r.practices.map((x) => `<div class="history"><b>${esc(x.id)}</b> ${esc(x.text)}<div class="muted">Seen in: ${esc(x.source)}</div></div>`).join("")}</details>` : ""}</div>
+      ${r.condense ? renderCondense(r.condense) : ""}
+      <div class="card"><div class="row"><b>Current vs modified</b><span style="margin-left:auto"></span><button class="btn" onclick="copyText(state.lastDraft.new_instructions, this)">Copy instructions</button></div><div class="muted" style="margin-top:4px">Copy the modified instructions and paste them over the instructions in Copilot Studio (Configure → Instructions → Edit → Ctrl+A, Ctrl+V → Save).</div><div id="draftSbs">${sideBySide(r.old_instructions || "", r.new_instructions)}</div></div>
+      <div id="draftIssues">${draftIssues(r.introduced_findings)}</div>
+      ${r.collisions.length ? `<div class="card"><b>Possible collisions</b>${r.collisions.map((c) => `<div class="history">${esc(c.query || c.topic)} — ${esc(c.risk)}</div>`).join("")}</div>` : ""}
+      <div class="card"><b>Generated tests</b><table><tr><th>Prompt</th><th>Expect</th><th>Why</th></tr>${r.tests.map((t) => `<tr><td>${esc(t.prompt)}</td><td>${esc(t.expect)}</td><td class="muted">${esc(t.why)}</td></tr>`).join("")}</table>
+        <button class="btn" style="margin-top:8px" onclick="sendToStudio(state.lastDraft.new_instructions, 'draftSendMsg')">Send to Copilot Studio</button>
+        <button class="btn ghost" style="margin-top:8px" onclick="copyText(state.lastDraft.new_instructions, this).then((ok) => { if (ok) $('draftSendMsg').innerHTML = 'Copied the full instructions with this change (' + state.lastDraft.new_instructions.length.toLocaleString() + ' characters). In Copilot Studio, open the agent <b>Configure</b> page, click <b>Edit</b> on Instructions, press <b>Ctrl+A</b> then <b>Ctrl+V</b>, review, and click <b>Save</b>.'; })">Copy instructions</button>
+        <button class="btn ghost" style="margin-top:8px" onclick="downloadEvalSet(evalRows(state.lastDraft.tests))">Download eval set (CSV)</button>
+        <div id="draftSendMsg" class="muted" style="margin-top:6px"></div></div>`;
+  } catch (e) { $("draftMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+init();
+</script>
+</body>
+</html>

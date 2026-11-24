@@ -1,0 +1,10 @@
+﻿Question: How many vacation days do I have left?
+Response: I couldn't find any information about that.
+Agent metadata
+Agent ID: T_contoso.ess.hr
+Matched functions
+No matched functions
+Selected functions for execution
+No functions selected for execution
+Execution details
+No function execution details

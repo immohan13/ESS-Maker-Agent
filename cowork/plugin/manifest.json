@@ -1,0 +1,33 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.28/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.28",
+  "version": "2.1.0",
+  "id": "fbe37cf1-2f4f-d465-065c-4b7faaaf1cde",
+  "developer": {
+    "name": "Microsoft Employee Self-Service",
+    "websiteUrl": "https://learn.microsoft.com/copilot/employee-self-service/overview",
+    "privacyUrl": "https://privacy.microsoft.com/privacystatement",
+    "termsOfUseUrl": "https://www.microsoft.com/servicesagreement"
+  },
+  "name": {
+    "short": "ESS Doctor",
+    "full": "ESS Doctor for Employee Self-Service agents"
+  },
+  "description": {
+    "short": "Diagnose ESS agent problems and get recommended fixes.",
+    "full": "Diagnoses why an Employee Self-Service agent says sorry, takes the wrong path, misses knowledge or fails a connector, using conversation evidence, instructions and evaluation runs, and recommends who fixes what."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#0F6CBD",
+  "agentSkills": [
+    { "folder": "./skills/conversation-xray" },
+    { "folder": "./skills/sorry-triage" },
+    { "folder": "./skills/instruction-check" },
+    { "folder": "./skills/instruction-draft" },
+    { "folder": "./skills/eval-triage" },
+    { "folder": "./skills/servicenow-setup" }
+  ]
+}

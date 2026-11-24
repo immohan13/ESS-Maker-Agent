@@ -27,6 +27,15 @@ secrets.json
 config/local.*
 *.token
 
+# Customer / tenant data the Doctor works with (never commit)
+*botContent*.yml
+*BotContent*.yml
+conversationHistory-*.json
+Evaluate *.csv
+*evalset*.csv
+RAI_Event_Analysis*.txt
+samples/**/*.yml
+
 # Editor / OS
 .vscode/
 .idea/

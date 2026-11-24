@@ -20,8 +20,9 @@
       --shadow: none;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-           background: var(--bg); color: var(--text); }
+    /* SF Pro renders from the OS on Apple devices (it can't be hosted or embedded); Segoe UI elsewhere. */
+    body { margin: 0; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+           background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
     header { padding: 12px 24px; border-bottom: 1px solid var(--line);
              display: flex; gap: 12px; align-items: center; background: var(--panel); }
     header .logo {
@@ -56,7 +57,7 @@
     textarea { min-height: 80px; resize: vertical; }
     button.primary { background: var(--accent); color: var(--accent-fg); border: 0;
                      padding: 8px 14px; border-radius: 6px; cursor: pointer;
-                     font: 600 13px/1 system-ui; }
+                     font-weight: 600; font-size: 13px; line-height: 1; font-family: inherit; }
     button.primary:hover { filter: brightness(.95); }
     button.secondary { background: var(--panel); color: var(--text); border: 1px solid var(--line);
                        padding: 8px 14px; border-radius: 6px; cursor: pointer; font: inherit; }

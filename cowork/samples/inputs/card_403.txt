@@ -1,0 +1,20 @@
+﻿Question: Open an HR case about my payslip
+Response: Sorry, something went wrong. Please try again later.
+Agent metadata
+Agent ID: T_contoso.ess.hr
+Agent version: 1.0.7
+Conversation ID: 11111111-2222-3333-4444-555555555555
+Capabilities
+- OneDriveAndSharePoint
+Actions
+- id: ServiceNowHRSD
+Matched functions
+- ServiceNowHRSD.createCase
+Selected functions for execution
+- ServiceNowHRSD.createCase
+Executed actions
+- ServiceNowHRSD.createCase
+  Status: Failed
+  Latency: 412 ms
+  Request: POST https://contoso.service-now.com/api/sn_hr_core/case
+  Response status: 403 Forbidden

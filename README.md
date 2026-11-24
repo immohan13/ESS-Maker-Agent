@@ -96,8 +96,10 @@ canvas to navigate.
 ```pwsh
 git clone https://github.com/immohan13/ESS-Maker-Agent.git ess-maker
 cd ess-maker
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+# Keep the virtual environment outside OneDrive: it contains certificate bundles (cacert.pem)
+# that OneDrive data-protection scans block.
+python -m venv $HOME\.venvs\ess-maker
+& $HOME\.venvs\ess-maker\Scripts\Activate.ps1
 pip install -e ".[dev]"
 copy .env.example .env    # fill in your tenant / env GUIDs / AOAI key
 
@@ -134,6 +136,30 @@ Copy `.env.example` to `.env` and fill in the values that apply to you:
 | `MCS_TOKEN_ENDPOINT` *or* `DIRECTLINE_SECRET` | Pick one if your agent supports DirectLine |
 | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` | Optional — enables LLM judge + content suggesters |
 | `APPINSIGHTS_APP_ID`, `APPINSIGHTS_API_KEY` | Optional — enables real-error lookup from App Insights |
+
+---
+
+## ESS Doctor
+
+ESS Doctor is a maker-facing web app at `http://127.0.0.1:8765/doctor` that shows how instruction changes in an ESS declarative agent affect routing, knowledge search, tool calls and answers, and fixes them safely.
+
+| Tab | What it does |
+| --- | --- |
+| Agent check-up | Loads the agent (live from Copilot Studio, an export, or pasted text), checks it against the ESS template, 36 rules and 43 authoring best practices, and applies fixes (including "Shorten to fit" for the 8,000-character limit) |
+| Conversation analyzer | Explains why an employee got a poor answer, from Copilot Studio runtime telemetry |
+| Tune for your employees | Drafts instruction changes from plain language (terminology, restrictions, routing, disclaimers, condensing), triages evaluation results, and compares before/after runs |
+| Trace X-ray | Steps through a DevUI conversation export: tools offered and called, the search funnel, citations and safety checks |
+
+Doctor settings in `.env` (see `.env.example`):
+
+| Variable | What |
+| --- | --- |
+| `DOCTOR_CS_TENANT_ID`, `DOCTOR_CS_ENVIRONMENT_ID`, `DOCTOR_CS_AGENT_ID`, `DOCTOR_CS_GATEWAY` | Agent that "Load from Copilot Studio" reads, and the gateway for its region. Sign in first with `az login --tenant <tenant>`. |
+| `DOCTOR_BASELINE_HR`, `DOCTOR_BASELINE_IT`, `DOCTOR_BASELINE_HUB`, `DOCTOR_SAMPLES_DIR` | ESS template exports to compare against, and a folder of agent exports for the picker |
+| `DOCTOR_KUSTO_CLUSTERS`, `DOCTOR_KUSTO_DB`, `DOCTOR_KUSTO_AAD_TENANT`, `DOCTOR_ALLOWED_TENANTS` | Optional runtime telemetry for the Conversation analyzer; only allow-listed tenants can be inspected |
+
+> [!IMPORTANT]
+> Keep agent exports, customer instructions, evaluation results and telemetry endpoints out of the repo. They belong in `.env` or local folders (`.workdir/` is git-ignored).
 
 ---
 
